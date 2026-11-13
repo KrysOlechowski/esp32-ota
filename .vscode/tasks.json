@@ -1,0 +1,73 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build: esp32-1",
+      "type": "shell",
+      "command": "pio",
+      "args": [
+        "run",
+        "-e",
+        "esp32-1"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [
+        "$gcc"
+      ]
+    },
+    {
+      "label": "Upload OTA: esp32-1",
+      "type": "shell",
+      "command": "pio",
+      "args": [
+        "run",
+        "-e",
+        "esp32-1",
+        "-t",
+        "upload"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [
+        "$gcc"
+      ]
+    },
+    {
+      "label": "Build: esp32-2",
+      "type": "shell",
+      "command": "pio",
+      "args": [
+        "run",
+        "-e",
+        "esp32-2"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [
+        "$gcc"
+      ]
+    },
+    {
+      "label": "Upload OTA: esp32-2",
+      "type": "shell",
+      "command": "pio",
+      "args": [
+        "run",
+        "-e",
+        "esp32-2",
+        "-t",
+        "upload"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [
+        "$gcc"
+      ]
+    }
+  ]
+}

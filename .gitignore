@@ -1,0 +1,24 @@
+# Dane prywatne, kopie poprzedniej konfiguracji i notatki
+/.local/
+/.private-backup/
+/secrets.local.json
+/secrets.*.local.json
+/platformio.local.ini
+/.env
+/.env.*
+!/.env.example
+/include/secrets.h
+*.pem
+*.key
+# Firmware zawiera dane Wi-Fi/OTA: nie publikuj plików binarnych ani cache.
+/.pio/
+*.bin
+*.elf
+*.map
+# Pliki generowane zawierają ścieżki komputera
+/.vscode/*
+!/.vscode/extensions.json
+!/.vscode/tasks.json
+.DS_Store
+__pycache__/
+*.pyc
