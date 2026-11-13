@@ -16,6 +16,8 @@
 | Czujnik DHT11 | mała płytka, 3 piny; użytkownik podał S po jednej stronie i − po drugiej; środek zasilanie wg referencji KY-015 | obecność i wartość pull-up; test rzeczywistych pomiarów |
 | Dioda RGB LED | 5 mm, 4-pin — potwierdzone przez użytkownika | wspólna anoda czy katoda, kolejność wyprowadzeń, parametry i rezystory dla kanałów R/G/B |
 | Moduł RGB LED KY-016 | użytkownik potwierdził B G R − i trzy rezystory 151 (150 Ω); typ ze wspólną katodą | test kolorów i rzeczywistej jasności |
+| Matryca LED 8×8 | użytkownik podał 1588AS, 16 nóżek, po 8 na stronę; bez MAX7219 | producent, polaryzacja i mapa wyprowadzeń egzemplarza, rozstaw nóżek, projekt ograniczenia prądu i odświeżania |
+| Tranzystory | użytkownik ma prawdopodobnie 3 sztuki; napisy C3225 oraz 2 H | liczba sztuk, zgodność obudowy i wyprowadzeń z 2SC3225; nie podłączone |
 | Inne moduły Arduino | różne elementy | oznaczenia i dokumentacja |
 
 Adresy IP nie są częścią publicznej dokumentacji; lokalny spis jest w .local/.
@@ -82,6 +84,22 @@ Nie dodawaj ponownie SG90 bez nowego zlecenia. Zachowano [notatkę o anulowanym
 eksperymencie](SERVO_WEB.md) i rozpoznaniu sprzętu; nie wykonano testu ruchu.
 
 ## Mapa pinów stanowiska
+
+### Nowe elementy: 1588AS i C3225 (2026-11-13)
+
+Matryca nie jest jeszcze podłączona. Nie traktuj nadruku 1588AS jako dowodu
+zgodności pinoutu z dowolnym znalezionym schematem. Znaleziono referencyjną
+[kartę TOPLITE TOP-CC-1588AS](https://www.ledtoplite.com/uploadfile/2017/1588/TOP-CC-1588AS.pdf),
+ale producent egzemplarza użytkownika pozostaje nieznany. Układ do pełnego
+sterowania wymaga projektu prądowego; nie podłączać 16 pinów bezpośrednio
+do ESP z pominięciem rezystorów i oceny prądu wspólnych linii.
+
+W [karcie Toshiba 2SC3225](https://media.digikey.com/pdf/Data%20Sheets/Toshiba%20PDFs/2SC3225_2009-12-21.pdf)
+oznaczenie obudowy to C3225. To mocna przesłanka identyfikacji, nie sprawdzenie
+egzemplarzy użytkownika. Referencja: NPN, zastosowania przełączające, obudowa
+TO-92MOD; wartości absolutnie maksymalne 40 V, 2 A, 900 mW nie są zalecanym
+punktem pracy. Nie podawano instrukcji podłączania wyprowadzeń tranzystorów.
+Trzy sztuki nie tworzą typowego ośmiokanałowego stopnia sterującego wierszami.
 
 Pełna [mapa 38 pinów P/L i podręczna karta ograniczeń](PINOUT.md) została dodana
 na podstawie sprawdzenia użytkownika. Użytkownik potwierdził, że obie płytki są takie same;
