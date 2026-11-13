@@ -18,6 +18,8 @@ A hands-on playground for **two ESP-WROOM-32 development boards**, wireless firm
 - 🛠️ VS Code tasks for building and uploading each board.
 - 🤖 Polish instructions for working with GPT/Codex and planning wiring safely.
 
+**In progress:** DHT11 + KY-016 climate lighting: manual RGB and brightness, plus automatic colors over 17–22°C with humidity-based saturation. Both firmware targets compile; the web UI was tested with simulated readings. Wiring, upload, sensor readings, physical colors, and subsequent OTA still need hardware verification.
+
 ## 🚀 Quick start
 
 Install VS Code with the PlatformIO IDE extension, then open this project folder.
@@ -87,7 +89,9 @@ Confirm the response names the intended device. An HTTP response alone does not 
 
 | Path | Purpose |
 |---|---|
-| `src/main.cpp` | Wi-Fi startup, HTTP page, and LED control on GPIO23 |
+| `src/main.cpp` | Wi-Fi, DHT11 on GPIO18, RGB PWM on GPIO25/26/27, and HTTP API (hardware verification pending) |
+| `include/web_page.h` | Local climate and RGB control page |
+| `include/climate_color.h` | Temperature and humidity color mapping |
 | `src/ota_service.cpp` | Dedicated OTA infrastructure |
 | `include/ota_service.h` | OTA interface |
 | `platformio.ini` | Shared board settings and two targets |
@@ -107,7 +111,8 @@ See [hardware and wiring](docs/HARDWARE.md) before connecting modules. ESP32 GPI
 
 ## 🧭 Guides
 
-- [Blue LED controlled from a web page — wiring plan and usage in Polish](docs/LED_WEB.md)
+- [DHT11 + KY-016 — current experiment, wiring plan and behavior in Polish](docs/CLIMATE_RGB.md)
+- [Previous blue LED experiment — historical wiring and usage in Polish](docs/LED_WEB.md)
 - [Setup, migration, commands, and macOS troubleshooting](docs/SETUP.md)
 - [Keeping OTA available](docs/OTA.md)
 - [Hardware inventory and wiring workflow](docs/HARDWARE.md)

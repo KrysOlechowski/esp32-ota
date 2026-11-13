@@ -1,73 +1,164 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <WebServer.h>
+#include <DHT.h>
 #include <private_config.h>
 #include "ota_service.h"
+#include "climate_color.h"
+#include "web_page.h"
 
 WebServer server(80);
-
 namespace {
-constexpr uint8_t LED_PIN = 23;  // L-18; zewnętrzna LED przez rezystor do GND.
-bool ledOn = false;
+// Plan sygnałów. Montaż modułów wymaga potwierdzenia pinoutu egzemplarzy.
+constexpr uint8_t RGB_PINS[] = {25, 26, 27};  // P-11, P-10, P-09
+constexpr uint8_t DHT_PIN = 18;                // L-11
+constexpr bool COMMON_ANODE = false;          // typowy KY-016: wspólna katoda
+constexpr uint32_t SAMPLE_MS = 2500;
+DHT dht(DHT_PIN, DHT11);
+ClimateColor::Range range;
+ClimateColor::RGB manual = {0, 100, 255}, applied = {0, 0, 0};
+bool automatic = false, enabled = false, sensorOK = false, pwmOK = false;
+uint8_t brightness = 60;
+uint8_t manualSaturation = 100;
+float temperature = NAN, humidity = NAN;
+uint32_t lastAttempt = 0, lastSuccess = 0;
+bool hasReading = false;
 
-void sendPage() {
-  String page = F(
-      "<!doctype html><html lang='pl'><head><meta charset='utf-8'>"
-      "<meta name='viewport' content='width=device-width,initial-scale=1'>"
-      "<title>Niebieska dioda</title><style>"
-      "body{font-family:system-ui,sans-serif;background:#eef4ff;color:#14233d;"
-      "margin:0;padding:24px}main{max-width:420px;margin:8vh auto;background:white;"
-      "padding:28px;border-radius:20px}h1{font-size:1.8rem}"
-      ".led{width:48px;height:48px;border-radius:50%;background:#9ba7b8}"
-      ".on{background:#1683ff;box-shadow:0 0 24px #1683ff}"
-      "form{margin:12px 0}button{width:100%;padding:16px;border:0;border-radius:12px;"
-      "font:inherit;font-weight:600;background:#095bc4;color:white;cursor:pointer}"
-      "button.off{background:#e6ebf2;color:#14233d}small{color:#52627a}"
-      "</style></head><body><main><h1>Niebieska dioda</h1><p>Urzadzenie: ");
-  page += DEVICE_HOSTNAME;
-  page += F("</p><div role='img' aria-label='Dioda' class='led");
-  if (ledOn) page += F(" on");
-  page += F("'></div><p>Stan: <strong>");
-  page += ledOn ? F("WŁĄCZONA") : F("WYŁĄCZONA");
-  page += F("</strong></p><form method='post' action='/led/on'>"
-            "<button>Włącz diodę</button></form>"
-            "<form method='post' action='/led/off'>"
-            "<button class='off'>Wyłącz diodę</button></form>"
-            "<p><a href='/'>Odśwież stan</a></p>"
-            "<small>Po restarcie dioda jest wyłączona.</small></main></body></html>");
-  server.sendHeader("Cache-Control", "no-store");
-  server.send(200, "text/html; charset=utf-8", page);
+String hexColor(ClimateColor::RGB c) {
+  char s[8];
+  snprintf(s, sizeof(s), "#%02x%02x%02x", c.r, c.g, c.b);
+  return String(s);
 }
 
-void setLed(bool on) {
-  ledOn = on;
-  digitalWrite(LED_PIN, on ? HIGH : LOW);
-  // Po POST wracamy przez GET: odświeżenie strony nie powtarza polecenia.
-  server.sendHeader("Location", "/");
-  server.sendHeader("Cache-Control", "no-store");
-  server.send(303, "text/plain", "");
+void applyColor() {
+  applied = {0, 0, 0};
+  if (!pwmOK) return;
+  if (enabled && (!automatic || sensorOK)) {
+    applied = automatic ? ClimateColor::fromReading(temperature, humidity, range)
+                        : ClimateColor::withSaturation(manual, manualSaturation);
+  }
+  const uint8_t channels[] = {applied.r, applied.g, applied.b};
+  for (int i = 0; i < 3; ++i) {
+    // Korekcja gamma ułatwia wybór ciemnych odcieni suwakiem.
+    uint8_t duty = lroundf(powf(channels[i] / 255.0f * brightness / 100.0f, 2.2f) * 255);
+    if (COMMON_ANODE) duty = 255 - duty;
+    if (!ledcWrite(RGB_PINS[i], duty)) {
+      pwmOK = false;
+      applied = {0, 0, 0};
+      for (uint8_t pin : RGB_PINS) {
+        ledcDetach(pin);
+        digitalWrite(pin, COMMON_ANODE ? HIGH : LOW);
+        pinMode(pin, OUTPUT);
+      }
+      break;
+    }
+  }
 }
-}  // namespace
+
+void sampleSensor() {
+  uint32_t now = millis();
+  if (uint32_t(now - lastAttempt) < SAMPLE_MS) return;
+  lastAttempt = now;
+  // Biblioteka DHT11 zajmuje ok. 20–30 ms; brak długiego oczekiwania w loop.
+  float h = dht.readHumidity(), t = dht.readTemperature();
+  sensorOK = isfinite(t) && isfinite(h) && t >= 0 && t <= 50 && h >= 0 && h <= 100;
+  if (sensorOK) {
+    temperature = t; humidity = h; hasReading = true; lastSuccess = millis();
+  }
+  if (automatic) applyColor();  // Przy błędzie: zgaś RGB, zachowaj ostatni odczyt na stronie.
+}
+
+void sendState() {
+  String json;
+  json.reserve(600);
+  json = "{\"device\":\"" DEVICE_HOSTNAME "\",\"mode\":\"";
+  json += automatic ? "auto" : "manual";
+  json += "\",\"enabled\":"; json += enabled ? "true" : "false";
+  json += ",\"sensorOK\":"; json += sensorOK ? "true" : "false";
+  json += ",\"pwmOK\":"; json += pwmOK ? "true" : "false";
+  json += ",\"temperature\":"; json += hasReading ? String(temperature, 1) : String("null");
+  json += ",\"humidity\":"; json += hasReading ? String(humidity, 1) : String("null");
+  json += ",\"ageSeconds\":"; json += hasReading ? String(uint32_t(millis() - lastSuccess) / 1000) : String("null");
+  json += ",\"color\":\"" + hexColor(applied) + "\",\"manualColor\":\"" + hexColor(manual) + "\"";
+  json += ",\"brightness\":" + String(brightness);
+  json += ",\"manualSaturation\":" + String(manualSaturation);
+  json += ",\"cold\":" + String(range.cold, 1) + ",\"warm\":" + String(range.warm, 1);
+  json += ",\"dry\":" + String(range.dry, 1) + ",\"wet\":" + String(range.wet, 1) + "}";
+  server.sendHeader("Cache-Control", "no-store");
+  server.send(200, "application/json; charset=utf-8", json);
+}
+
+bool numberArg(const char *name, float low, float high, float &out) {
+  if (!server.hasArg(name)) return false;
+  String value = server.arg(name);
+  if (value.isEmpty() || value.length() > 8) return false;
+  for (char c : value) if ((c < '0' || c > '9') && c != '.' && c != '-') return false;
+  char *end;
+  out = strtof(value.c_str(), &end);
+  return end != value.c_str() && *end == '\0' && isfinite(out) && out >= low && out <= high;
+}
+void badRequest() { server.send(400, "text/plain; charset=utf-8", "Nieprawidłowe ustawienia."); }
+void control() {
+  String mode = server.arg("mode");
+  if (mode == "off" && server.args() == 1) { enabled = false; applyColor(); sendState(); return; }
+  float level;
+  if (!numberArg("brightness", 0, 100, level) || floorf(level) != level) { badRequest(); return; }
+  ClimateColor::RGB next = manual;
+  float saturation = manualSaturation;
+  if (mode == "manual" && server.args() == (server.hasArg("saturation") ? 4 : 3)) {
+    if (server.hasArg("saturation") &&
+        (!numberArg("saturation", 0, 100, saturation) || floorf(saturation) != saturation)) {
+      badRequest(); return;
+    }
+    String color = server.arg("color");
+    if (color.length() != 7 || color[0] != '#') { badRequest(); return; }
+    for (int i = 1; i < 7; ++i) if (!isxdigit(static_cast<unsigned char>(color[i]))) { badRequest(); return; }
+    unsigned long value = strtoul(color.c_str() + 1, nullptr, 16);
+    next = {uint8_t(value >> 16), uint8_t(value >> 8), uint8_t(value)};
+  } else if (mode != "auto" || server.args() != 2) { badRequest(); return; }
+  manual = next; manualSaturation = uint8_t(saturation);
+  brightness = uint8_t(level); automatic = mode == "auto"; enabled = true;
+  applyColor(); sendState();
+}
+void configureRange() {
+  ClimateColor::Range next;
+  if (server.args() != 4 || !numberArg("cold", 0, 49, next.cold) ||
+      !numberArg("warm", 1, 50, next.warm) || !numberArg("dry", 0, 99, next.dry) ||
+      !numberArg("wet", 1, 100, next.wet) || next.warm - next.cold < 1 || next.wet - next.dry < 1) {
+    badRequest(); return;
+  }
+  range = next; applyColor(); sendState();
+}
+}
 
 void setup() {
   Serial.begin(115200);
-  digitalWrite(LED_PIN, LOW);
-  pinMode(LED_PIN, OUTPUT);
-  WiFi.mode(WIFI_STA);
-  WiFi.setHostname(DEVICE_HOSTNAME);
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(100);  // Bez połączenia z Wi-Fi OTA jest niedostępne.
+  digitalWrite(23, LOW); pinMode(23, OUTPUT);  // Dawna niebieska LED wyłączona.
+  pwmOK = true;
+  for (uint8_t pin : RGB_PINS) {
+    digitalWrite(pin, COMMON_ANODE ? HIGH : LOW); pinMode(pin, OUTPUT);
+    if (!ledcAttach(pin, 5000, 8)) pwmOK = false;
   }
+  if (!pwmOK) {
+    for (uint8_t pin : RGB_PINS) { ledcDetach(pin); digitalWrite(pin, COMMON_ANODE ? HIGH : LOW); pinMode(pin, OUTPUT); }
+  }
+  applyColor();
+  dht.begin(); lastAttempt = millis();
+  WiFi.mode(WIFI_STA); WiFi.setHostname(DEVICE_HOSTNAME); WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  while (WiFi.status() != WL_CONNECTED) delay(100);
   OtaService::begin();
-  server.on("/", HTTP_GET, sendPage);
-  server.on("/led/on", HTTP_POST, []() { setLed(true); });
-  server.on("/led/off", HTTP_POST, []() { setLed(false); });
+  server.on("/", HTTP_GET, []() {
+    server.sendHeader("Cache-Control", "no-store");
+    server.send_P(200, "text/html; charset=utf-8", WEB_PAGE);
+  });
+  server.on("/api/state", HTTP_GET, sendState);
+  server.on("/api/control", HTTP_POST, control);
+  server.on("/api/range", HTTP_POST, configureRange);
   server.begin();
 }
-
 void loop() {
-  OtaService::handle();  // Nie usuwać; unikaj blokujących pętli i długiego delay().
+  OtaService::handle();
   server.handleClient();
+  sampleSensor();
   delay(1);
 }

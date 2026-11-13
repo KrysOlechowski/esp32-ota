@@ -13,9 +13,9 @@
 | Rezystory | 220 Ω; 1 kΩ (1000 Ω); 10 kΩ (10 000 Ω) — potwierdzone przez użytkownika | moc znamionowa i tolerancja |
 | Serwo | Tower Pro TM / Microservo 9g / SG90; bez napisu 360°; trzy przewody opisane poniżej | zasilanie i adapter, rzeczywisty zakres i pobór prądu egzemplarza |
 | Fotorezystor | użytkownik potwierdził dwie nóżki i zygzak na powierzchni; podejrzewa GL5516 | dokładny model niepotwierdzony; brak potwierdzonego montażu |
-| Czujnik DHT11 | model podany przez użytkownika; czujnik temperatury i wilgotności | sam czujnik czy moduł, liczba i opisy pinów, napięcie zasilania i poziom sygnału, obecność rezystora podciągającego |
+| Czujnik DHT11 | mała płytka, 3 piny; użytkownik podał S po jednej stronie i − po drugiej; środek zasilanie wg referencji KY-015 | obecność i wartość pull-up; test rzeczywistych pomiarów |
 | Dioda RGB LED | 5 mm, 4-pin — potwierdzone przez użytkownika | wspólna anoda czy katoda, kolejność wyprowadzeń, parametry i rezystory dla kanałów R/G/B |
-| Moduł RGB LED KY-016 | oznaczenie podane przez użytkownika; osobny element od diody RGB 5 mm | opisy i kolejność pinów, wspólna anoda czy katoda, obecność i wartości rezystorów, napięcie i prąd kanałów |
+| Moduł RGB LED KY-016 | użytkownik potwierdził B G R − i trzy rezystory 151 (150 Ω); typ ze wspólną katodą | test kolorów i rzeczywistej jasności |
 | Inne moduły Arduino | różne elementy | oznaczenia i dokumentacja |
 
 Adresy IP nie są częścią publicznej dokumentacji; lokalny spis jest w .local/.
@@ -23,8 +23,10 @@ ESP-WROOM-32 oznacza moduł radiowy, nie jednoznaczny model całej płytki.
 Profil nodemcu-32s jest zachowany z istniejącego projektu; identyfikacja PCB poniżej
 pochodzi z napisów przepisanych przez użytkownika, nie z samego profilu.
 ESP32-1 jest na stałe w breadboardzie i jego położenie się nie zmienia.
-Użytkownik potwierdził działanie zewnętrznej LED; ma ona pozostać podczas dodawania
-serwa. Dokładne otwory i rozróżnienie planu od montażu są w `.local/BREADBOARD.md`.
+Użytkownik wcześniej potwierdził działanie zewnętrznej LED. Teraz potwierdził
+usunięcie poprzednich przewodów, LED i rezystora; zostaje samo ESP32-1.
+Nowy eksperyment: [DHT11 + KY-016](CLIMATE_RGB.md), bez serwa.
+Dokładne otwory i rozróżnienie planu od montażu są w `.local/BREADBOARD.md`.
 
 ## Identyfikacja sprzętu — zachowaj dla kolejnych agentów
 
@@ -118,7 +120,8 @@ Na ESP32-1 użytkownik wykonał ten eksperyment i potwierdził działanie strony
 LED. Używa rezystora 1 kΩ; poniższy schemat pozostaje ogólnym odniesieniem.
 Przy 3,3 V i 1 kΩ górna granica prądu wynosi 3,3 mA, a rzeczywisty prąd LED
 jest mniejszy ze względu na jej napięcie przewodzenia. Usunięcie tej LED nie
-rozwiązuje kwestii wydajności zasilania serwa; nie demontuj jej w tym celu.
+rozwiązuje kwestii wydajności zasilania serwa. Ten montaż został później usunięty
+przez użytkownika przed eksperymentem DHT11 + KY-016; opis poniżej jest historyczny.
 
 Po potwierdzeniu pinoutu i wolnego GPIO można użyć GPIO23:
 
@@ -143,9 +146,9 @@ nie podłączaj silnika bezpośrednio do GPIO. Nie wyprowadzaj zasilania przez p
 
 ## Czujnik temperatury i inne moduły
 
-Użytkownik podał model czujnika: **DHT11**. Nie pytaj ponownie o model;
-przed montażem ustal, czy to sam czujnik, czy moduł, oraz jego pinout i obecność
-rezystora podciągającego. Potem sprawdź dokumentację zasilania i poziomu sygnału,
+Użytkownik podał model czujnika: **DHT11**, na małej płytce z trzema pinami S / środek / −.
+Nie pytaj ponownie o model ani postać modułu. Układ środkowego zasilania
+zweryfikowano dla referencyjnego KY-015; obecność pull-up na egzemplarzu pozostaje nieustalona. Potem sprawdź dokumentację zasilania i poziomu sygnału,
 przygotuj tabelę połączeń i kod. Pull-up linii ESP32 powinien mieć napięcie
 zgodne z logiką 3,3 V.
 

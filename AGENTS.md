@@ -44,6 +44,12 @@ Wystarczy ten plik i docs/AI_WORKFLOW.md: osobny skill nie jest obecnie wymagany
 1. Przed doborem pinów przeczytaj docs/PINOUT.md i docs/HARDWARE.md oraz lokalną
    .local/BREADBOARD.md, jeśli istnieje. Karta pinów zawiera sprawdzone podstawy;
    nie szukaj ich ponownie w Internecie bez konkretnej potrzeby weryfikacji.
+   docs/HARDWARE.md zawiera przepisane oznaczenia NodeMCU ESP-32S V1.1 i SG90,
+   sprawdzony referencyjny tor USB → D1 → 5V oraz granice pewności tych ustaleń.
+   Nie pytaj ponownie o zapisane napisy ani nie utożsamiaj schematu referencyjnego
+   z pomiarem wydajności zasilania rzeczywistej płytki. Obecny eksperyment to
+   DHT11 + KY-016 (docs/CLIMATE_RGB.md); stara LED i przewody zostały usunięte
+   według potwierdzenia użytkownika. Nie dodawaj ponownie serwa.
 2. Ustal, czy pracujemy na ESP32-1 czy ESP32-2. Użytkownik potwierdził identyczność
    obu płytek: mapa P/L jest wspólna, nie pytaj ponownie o jej zgodność.
    Użytkownik nie planuje innych modeli ESP32. Potwierdzone adresy otworów są
