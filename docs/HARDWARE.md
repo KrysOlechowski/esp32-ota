@@ -4,21 +4,80 @@
 
 | Element | Wiadomo | Do ustalenia przed podłączeniem |
 |---|---|---|
-| ESP32-1 | moduł ESP-WROOM-32; OTA esp32-1 | położenie i aktualne przewody na breadboardzie |
-| ESP32-2 | moduł ESP-WROOM-32; OTA esp32-2 | położenie i aktualne przewody na breadboardzie |
+| ESP32-1 | PCB z napisami NodeMCU / ESP-32S / V1.1; OTA esp32-1 | wydajność toru 5V pod obciążeniem serwa |
+| ESP32-2 | użytkownik potwierdził identyczność płytek; OTA esp32-2 | aktualny montaż i przewody osobno od ESP32-1 |
 | Zasilacz USB | 5 V, 2 A | marka/model, stan i parametry dodatkowych obciążeń |
 | Kabel | cały USB Micro-B | do uploadu USB wymagana obsługa danych |
 | Płytka stykowa | oznaczone rzędy | orientacja i ciągłość szyn zasilających |
-| LED, przewody | zestaw do Arduino | kolory i typy |
+| Niebieska LED | dwunóżkowa; działa na ESP32-1 przez stronę WWW; GPIO23 i rezystor 1 kΩ | dokładny typ i parametry optyczne nieustalone |
 | Rezystory | 220 Ω; 1 kΩ (1000 Ω); 10 kΩ (10 000 Ω) — potwierdzone przez użytkownika | moc znamionowa i tolerancja |
-| Serwa / silniki | moduły z zestawu | model, zasilanie, prąd rozruchu/zatrzymania |
-| Czujnik temperatury | obecny w zestawie | model, pinout, napięcie, protokół |
+| Serwo | Tower Pro TM / Microservo 9g / SG90; bez napisu 360°; trzy przewody opisane poniżej | zasilanie i adapter, rzeczywisty zakres i pobór prądu egzemplarza |
+| Fotorezystor | użytkownik potwierdził dwie nóżki i zygzak na powierzchni; podejrzewa GL5516 | dokładny model niepotwierdzony; brak potwierdzonego montażu |
+| Czujnik DHT11 | model podany przez użytkownika; czujnik temperatury i wilgotności | sam czujnik czy moduł, liczba i opisy pinów, napięcie zasilania i poziom sygnału, obecność rezystora podciągającego |
+| Dioda RGB LED | 5 mm, 4-pin — potwierdzone przez użytkownika | wspólna anoda czy katoda, kolejność wyprowadzeń, parametry i rezystory dla kanałów R/G/B |
+| Moduł RGB LED KY-016 | oznaczenie podane przez użytkownika; osobny element od diody RGB 5 mm | opisy i kolejność pinów, wspólna anoda czy katoda, obecność i wartości rezystorów, napięcie i prąd kanałów |
 | Inne moduły Arduino | różne elementy | oznaczenia i dokumentacja |
 
 Adresy IP nie są częścią publicznej dokumentacji; lokalny spis jest w .local/.
 ESP-WROOM-32 oznacza moduł radiowy, nie jednoznaczny model całej płytki.
-Profil nodemcu-32s jest zachowany z istniejącego projektu; nie jest dowodem modelu devboardu.
-Nie potwierdzono obecnego okablowania modułów. Poniższe przykłady są planem, nie zapisem montażu.
+Profil nodemcu-32s jest zachowany z istniejącego projektu; identyfikacja PCB poniżej
+pochodzi z napisów przepisanych przez użytkownika, nie z samego profilu.
+ESP32-1 jest na stałe w breadboardzie i jego położenie się nie zmienia.
+Użytkownik potwierdził działanie zewnętrznej LED; ma ona pozostać podczas dodawania
+serwa. Dokładne otwory i rozróżnienie planu od montażu są w `.local/BREADBOARD.md`.
+
+## Identyfikacja sprzętu — zachowaj dla kolejnych agentów
+
+Ustalenia z 2026-11-13. Nie pytaj ponownie o te same napisy ani nie szukaj
+ponownie schematu bez nowej sprzeczności lub konkretnej brakującej informacji.
+
+### Płytka ESP32-1
+
+- Spód, zapis użytkownika: `node mcu`, `esp-32s`, `v1.1`, `101010`.
+- Góra: przycisk opisany przez użytkownika jako `Ioo` / BOOT (IO0) oraz `EN` / reset.
+- Na metalowej osłonie modułu użytkownik odczytał m.in. `211-161007`.
+  Samo to oznaczenie nie ustala wydajności zasilania płytki.
+- Napisy odpowiadają rodzinie NodeMCU-32S V1.1. Nie potwierdzają producenta
+  rzeczywistego egzemplarza ani zgodności wszystkich elementów ze schematem.
+- Mapa P/L obu płytek jest potwierdzona przez użytkownika: [PINOUT.md](PINOUT.md).
+  Nowe oznaczenia nie zmieniają tej mapy ani zapisanego położenia breadboardu.
+
+Sprawdzono wizualnie sekcję POWER w **schemacie Ai-Thinker NodeMCU-32S V1.1,
+2016/10/10** (strona 1):
+
+```text
+USB (VDDUSB) → dioda D1 → VDD5V → pin 5V oraz wejście stabilizatora AMS1117-3.3
+```
+
+D1 jest opisana `1N5819/SS14/S4(SOD_323)`. Zatem w schemacie referencyjnym
+pin 5V jest zasilany z USB przez diodę; nie jest wyjściem stabilizatora 3,3 V.
+Nie oznacza to zatwierdzonej wydajności całego toru USB, diody i ścieżek
+rzeczywistego egzemplarza dla prądu serwa. Nie zmierzono napięcia pod obciążeniem.
+
+Źródło: [schemat producenta Ai-Thinker V1.1, kopia PDF](https://hk.botsheet.com/wp-content/uploads/2021/04/nodemcu_32s_schematic_v1.1.pdf).
+Schemat wystarcza do ustalenia kierunku zasilania w projekcie referencyjnym;
+nie trzeba ponownie prosić użytkownika o numery elementów, by ustalić ten fakt.
+
+### Serwo użytkownika
+
+- Etykieta: `Tower Pro TM`, `Microservo 9g`, `SG90`.
+- Użytkownik potwierdził brak `360°` i `continuous rotation`.
+  Przygotowany program dotyczy wersji pozycyjnej; brak nadruku nie jest pomiarem zakresu.
+- Przewody: żółty/pomarańczowy (typowo sygnał), czerwony (zasilanie), brązowy (masa).
+- Użytkownik nie ma osobnego zasilania serwa. Posiadanie adaptera lub modułu
+  zasilania breadboardu nie zostało potwierdzone; nie zakładaj ich obecności.
+- SG90 nie jest jeszcze potwierdzone jako podłączone ani przetestowane.
+- Dane producenta, nie pomiar egzemplarza: zasilanie 4,8 V; w odpowiedzi
+  producenta dotyczącej wersji cyfrowej 4,8–6 V i prąd około 0,5–2 A.
+  Nie stosuj tej wartości jako zmierzonego prądu rozruchu lub zatrzymania użytkownika.
+- Dokumentacja producenta nie podaje jednoznacznego progu wejścia sygnałowego;
+  działanie z sygnałem ESP32 3,3 V pozostaje do potwierdzenia dla egzemplarza.
+
+Źródła: [Tower Pro SG90 Analog](https://towerpro.com.tw/product/sg90-analog/),
+[SG90 Digital i odpowiedzi producenta](https://towerpro.com.tw/product/sg90-7/).
+Użytkownik zrezygnował z serwa. Przygotowany kod usunięto bez wgrywania go na ESP.
+Nie dodawaj ponownie SG90 bez nowego zlecenia. Zachowano [notatkę o anulowanym
+eksperymencie](SERVO_WEB.md) i rozpoznaniu sprzętu; nie wykonano testu ruchu.
 
 ## Mapa pinów stanowiska
 
@@ -55,6 +114,12 @@ agent powinien wtedy wskazywać konkretne pola, a nie zgadywać położenia pły
 
 ## Pierwszy eksperyment: zewnętrzna LED (propozycja)
 
+Na ESP32-1 użytkownik wykonał ten eksperyment i potwierdził działanie strony oraz
+LED. Używa rezystora 1 kΩ; poniższy schemat pozostaje ogólnym odniesieniem.
+Przy 3,3 V i 1 kΩ górna granica prądu wynosi 3,3 mA, a rzeczywisty prąd LED
+jest mniejszy ze względu na jej napięcie przewodzenia. Usunięcie tej LED nie
+rozwiązuje kwestii wydajności zasilania serwa; nie demontuj jej w tym celu.
+
 Po potwierdzeniu pinoutu i wolnego GPIO można użyć GPIO23:
 
 | ESP32 / element | Połączenie |
@@ -78,11 +143,15 @@ nie podłączaj silnika bezpośrednio do GPIO. Nie wyprowadzaj zasilania przez p
 
 ## Czujnik temperatury i inne moduły
 
-Nie rozpoznano typu: może to być np. termistor, układ analogowy, DHT lub DS18B20.
-Mają różne pinouty, napięcia i biblioteki. Nie ma jednej bezpiecznej instrukcji
-podłączenia „czujnika temperatury”. Najpierw model, zdjęcie opisów i dokumentacja,
-potem tabela połączeń, ewentualny pull-up i kod. Pull-up linii ESP32 powinien mieć
-napięcie zgodne z logiką 3,3 V.
+Użytkownik podał model czujnika: **DHT11**. Nie pytaj ponownie o model;
+przed montażem ustal, czy to sam czujnik, czy moduł, oraz jego pinout i obecność
+rezystora podciągającego. Potem sprawdź dokumentację zasilania i poziomu sygnału,
+przygotuj tabelę połączeń i kod. Pull-up linii ESP32 powinien mieć napięcie
+zgodne z logiką 3,3 V.
+
+Użytkownik ma też dwa osobne elementy RGB: **diodę LED 5 mm, 4-pin** oraz
+**moduł KY-016**. Nie utożsamiaj ich pinoutu ani nie zakładaj obecności rezystorów
+w module bez sprawdzenia. Dodanie do inwentarza nie oznacza wykonanego montażu.
 
 ## Dobór pinów ESP32
 
