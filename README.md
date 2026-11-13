@@ -13,7 +13,7 @@ A hands-on playground for **two ESP-WROOM-32 development boards**, wireless firm
 
 - 🛜 Password-protected ArduinoOTA updates, separated from experiment code.
 - 🧩 Two PlatformIO environments in one codebase: `esp32-1` and `esp32-2`.
-- 🌐 A small HTTP endpoint showing which device is running.
+- 🌐 A local web page with on/off buttons for an external blue LED on GPIO23.
 - 🔐 Ignored local credentials; no private network addresses in shared configuration.
 - 🛠️ VS Code tasks for building and uploading each board.
 - 🤖 Polish instructions for working with GPT/Codex and planning wiring safely.
@@ -87,7 +87,7 @@ Confirm the response names the intended device. An HTTP response alone does not 
 
 | Path | Purpose |
 |---|---|
-| `src/main.cpp` | Wi-Fi startup, HTTP, and future experiments |
+| `src/main.cpp` | Wi-Fi startup, HTTP page, and LED control on GPIO23 |
 | `src/ota_service.cpp` | Dedicated OTA infrastructure |
 | `include/ota_service.h` | OTA interface |
 | `platformio.ini` | Shared board settings and two targets |
@@ -107,6 +107,7 @@ See [hardware and wiring](docs/HARDWARE.md) before connecting modules. ESP32 GPI
 
 ## 🧭 Guides
 
+- [Blue LED controlled from a web page — wiring plan and usage in Polish](docs/LED_WEB.md)
 - [Setup, migration, commands, and macOS troubleshooting](docs/SETUP.md)
 - [Keeping OTA available](docs/OTA.md)
 - [Hardware inventory and wiring workflow](docs/HARDWARE.md)
