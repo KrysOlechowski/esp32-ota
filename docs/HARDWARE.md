@@ -9,7 +9,8 @@
 | Zasilacz USB | 5 V, 2 A | marka/model, stan i parametry dodatkowych obciążeń |
 | Kabel | cały USB Micro-B | do uploadu USB wymagana obsługa danych |
 | Płytka stykowa | oznaczone rzędy | orientacja i ciągłość szyn zasilających |
-| LED, rezystory, przewody | zestaw do Arduino | kolory, wartości i typy |
+| LED, przewody | zestaw do Arduino | kolory i typy |
+| Rezystory | 220 Ω; 1 kΩ (1000 Ω); 10 kΩ (10 000 Ω) — potwierdzone przez użytkownika | moc znamionowa i tolerancja |
 | Serwa / silniki | moduły z zestawu | model, zasilanie, prąd rozruchu/zatrzymania |
 | Czujnik temperatury | obecny w zestawie | model, pinout, napięcie, protokół |
 | Inne moduły Arduino | różne elementy | oznaczenia i dokumentacja |
