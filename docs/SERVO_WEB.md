@@ -1,5 +1,9 @@
 # SG90 — eksperyment anulowany
 
+Aktualizacja 2026-11-14: użytkownik wrócił do planowania SG90 oraz silnika
+krokowego 28BYJ-48. Poniżej historia wcześniejszego anulowania; nowa ocena
+i inwentarz są w [HARDWARE.md](HARDWARE.md). Nie przywrócono jeszcze kodu napędów.
+
 Użytkownik zrezygnował z serwa. Przygotowany kod i sterowanie SG90 na stronie
 zostały usunięte; firmware z serwem nie został wgrany. Działająca niebieska LED
 pozostaje w projekcie. Nie dodawaj ponownie SG90 bez nowego zlecenia.

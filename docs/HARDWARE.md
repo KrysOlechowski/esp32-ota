@@ -12,6 +12,8 @@
 | Niebieska LED | dwunóżkowa; działa na ESP32-1 przez stronę WWW; GPIO23 i rezystor 1 kΩ | dokładny typ i parametry optyczne nieustalone |
 | Rezystory | 220 Ω; 1 kΩ (1000 Ω); 10 kΩ (10 000 Ω) — potwierdzone przez użytkownika | moc znamionowa i tolerancja |
 | Serwo | Tower Pro TM / Microservo 9g / SG90; bez napisu 360°; trzy przewody opisane poniżej | zasilanie i adapter, rzeczywisty zakres i pobór prądu egzemplarza |
+| Silnik krokowy | napis 28BYJ-48 / 5VDC / 15031801; pięć przewodów w białym gnieździe płytki ULN2003AN widoczne na zdjęciu | oporność uzwojeń/prąd i zasilanie; brak potwierdzonego połączenia z ESP |
+| Płytka sterownika silnika | ULN2003AN; diody A/B/C/D; 4 wlutowane wejścia IN1–IN4; 4 dolne piny, dwa oznaczone − i +, nadruk 5--12V; IN5–IN7 to puste pola | funkcja dwóch pozostałych dolnych pinów/ewentualnej zworki i zgodność poziomów sterujących |
 | Fotorezystor | użytkownik potwierdził dwie nóżki i zygzak na powierzchni; podejrzewa GL5516 | dokładny model niepotwierdzony; brak potwierdzonego montażu |
 | Czujnik DHT11 | mała płytka, 3 piny; użytkownik podał S po jednej stronie i − po drugiej; środek zasilanie wg referencji KY-015 | obecność i wartość pull-up; test rzeczywistych pomiarów |
 | Dioda RGB LED | 5 mm, 4-pin — potwierdzone przez użytkownika | wspólna anoda czy katoda, kolejność wyprowadzeń, parametry i rezystory dla kanałów R/G/B |
@@ -79,9 +81,58 @@ nie trzeba ponownie prosić użytkownika o numery elementów, by ustalić ten fa
 
 Źródła: [Tower Pro SG90 Analog](https://towerpro.com.tw/product/sg90-analog/),
 [SG90 Digital i odpowiedzi producenta](https://towerpro.com.tw/product/sg90-7/).
-Użytkownik zrezygnował z serwa. Przygotowany kod usunięto bez wgrywania go na ESP.
-Nie dodawaj ponownie SG90 bez nowego zlecenia. Zachowano [notatkę o anulowanym
-eksperymencie](SERVO_WEB.md) i rozpoznaniu sprzętu; nie wykonano testu ruchu.
+Użytkownik wcześniej zrezygnował z serwa; przygotowany kod usunięto bez uploadu.
+2026-11-14 wrócił do tematu: prosi o ocenę uruchomienia SG90 razem z 28BYJ-48,
+z możliwością wyboru tylko jednego silnika. Na razie planowanie, bez nowego kodu,
+montażu i testu ruchu. Zachowano [historię eksperymentu](SERVO_WEB.md).
+
+### Silnik krokowy 28BYJ-48 (2026-11-14)
+
+- Dokładny napis przepisany przez użytkownika: `step motor 28byj-48 5vdc 15031801`.
+- To silnik krokowy, nie serwo pozycyjne. Nie przypisuj numerowi 15031801
+  znaczenia daty/wersji bez dokumentacji producenta egzemplarza.
+- Typowe zestawy mają silnik unipolarny z przekładnią oraz sterownik ULN2003.
+  Użytkownik potwierdził posiadanie płytki z czterema diodami i układem
+  `19cxy8k e4 uln2003an` (zapis użytkownika). ULN2003AN identyfikuje układ;
+  pozostałym napisom nie przypisano znaczenia bez dodatkowej dokumentacji.
+  Nie pytaj ponownie o napis na tym układzie.
+  Użytkownik potwierdził oznaczenia diod A/B/C/D, pinów zasilania − i + oraz
+  napis pod nimi `5vv12v`. Zapis przypomina zakres 5–12 V płytki; nie potwierdza
+  obecności stabilizatora. Silnik ma wyraźne 5VDC — nie zasilać go napięciem 12 V.
+  Na zdjęciu użytkownika z 2026-11-14 widać:
+  - cztery wlutowane piny IN1, IN2, IN3, IN4;
+  - IN5, IN6, IN7 jako nieobsadzone pola lutownicze, nie wystające piny;
+  - białe gniazdo z pięcioprzewodową wtyczką silnika;
+  - diody A/B/C/D oraz dolne złącze czteropinowe; pod pierwszymi dwoma
+    (od strony oznaczeń IN) nadrukowano − i +; poniżej 5--12V;
+  - zdjęcie nie wystarcza do potwierdzenia funkcji pozostałych dwóch dolnych
+    pinów i połączeń ewentualnej zworki. Nie każ ich zwierać ani zdejmować
+    zworki bez sprawdzenia obwodu. Potwierdzone − i + są punktami zasilania.
+  Nie pytaj ponownie o liczbę wejść IN ani liczbę przewodów w widocznym wtyku.
+- Nie podłączać uzwojeń do GPIO ani 3V3. Potrzebny jest odpowiedni stopień
+  sterujący i zasilanie silnika 5 V ze wspólną masą ESP32.
+- Z typowym modułem IN1–IN4: cztery GPIO, SG90 wymaga dodatkowo jednego.
+  Nie przydzielono jeszcze konkretnych pinów; nie zmieniać działającego DHT11/RGB.
+- Sterowanie programowe musi być nieblokujące, by zachować HTTP/OTA i odczyty.
+  DHT11 krótko blokuje pętlę podczas odczytu; uwzględnić to w regularności kroków.
+- Pozycja krokowca wynika z liczby kroków. Po restarcie nie zna bezwzględnego
+  położenia; mechanizm wymagający powtarzalnego zera potrzebuje bazowania/czujnika.
+- Zasilanie dwóch napędów naraz nie zostało zweryfikowane. Sama obecność
+  ładowarki 5 V / 2 A nie potwierdza wydajności toru USB/pinu 5V płytki.
+- Porównanie zasilania (2026-11-14): referencyjny 28BYJ-48 5 V ma uzwojenia
+  50 Ω ±7%, co daje orientacyjnie 100 mA na fazę przed uwzględnieniem spadku
+  napięcia w ULN2003. Przy jednej/dwóch aktywnych fazach orientacyjnie 100–200 mA,
+  nie licząc drobnego poboru płytki. To obliczenie dla wersji referencyjnej,
+  nie pomiar użytkownika — warianty uzwojeń mogą się różnić.
+  Krokowiec jest z tego powodu lepszym kandydatem do pierwszego testu zasilania
+  niż SG90 z silnie zależnym od obciążenia prądem. Nie zatwierdza to automatycznie
+  zasilania silnika przez płytkę ESP; przy postoju aktywne cewki nadal pobierają prąd.
+  [Referencyjna karta 28BYJ-48 5 V / 50 Ω](https://s3.amazonaws.com/snapeda/datasheet/STEP_MOTOR_5V_%2828BYJ-48-5V%29_mikroElektronika.pdf).
+
+Źródła referencyjnych zestawów, nie identyfikacja producenta egzemplarza:
+[Olimex 28BYJ-48 + ULN2003](https://www.olimex.com/Products/Robot-CNC-Parts/StepperMotors/SM-5VDC-DRV/),
+[SunFounder 5 V, 5 przewodów / 4 fazy](https://www.sunfounder.com/products/dc-5v-stepper-motor-28byj-48-uln2003-drive-module-5-line-4-phase),
+[TI ULN2003A — sterownik obciążeń indukcyjnych](https://www.ti.com/product/ULN2003A).
 
 ## Mapa pinów stanowiska
 
