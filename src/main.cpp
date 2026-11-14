@@ -6,12 +6,16 @@
 #include "ota_service.h"
 #include "climate_color.h"
 #include "web_page.h"
+#include "stepper_motion.h"
 
 WebServer server(80);
 namespace {
 // Plan sygnałów. Montaż modułów wymaga potwierdzenia pinoutu egzemplarzy.
 constexpr uint8_t RGB_PINS[] = {25, 26, 27};  // P-11, P-10, P-09
 constexpr uint8_t DHT_PIN = 18;                // L-11
+constexpr uint8_t STEPPER_PINS[] = {19, 21, 22, 23};  // IN1..IN4, L-12/14/17/18
+StepperMotion motor;
+uint8_t motorMask = 0;
 constexpr bool COMMON_ANODE = false;          // typowy KY-016: wspólna katoda
 constexpr uint32_t SAMPLE_MS = 2500;
 DHT dht(DHT_PIN, DHT11);
@@ -23,6 +27,18 @@ uint8_t manualSaturation = 100;
 float temperature = NAN, humidity = NAN;
 uint32_t lastAttempt = 0, lastSuccess = 0;
 bool hasReading = false;
+
+void writeMotor() {
+  if (motorMask == motor.mask()) return;
+  motorMask = motor.mask();
+  for (uint8_t i = 0; i < 4; ++i) digitalWrite(STEPPER_PINS[i], (motorMask >> i) & 1);
+}
+void stopMotor() { motor.stop(); writeMotor(); }
+void handleMotor() {
+  if (WiFi.status() != WL_CONNECTED) motor.stop();
+  motor.tick(millis());
+  writeMotor();
+}
 
 String hexColor(ClimateColor::RGB c) {
   char s[8];
@@ -82,6 +98,9 @@ void sendState() {
   json += ",\"color\":\"" + hexColor(applied) + "\",\"manualColor\":\"" + hexColor(manual) + "\"";
   json += ",\"brightness\":" + String(brightness);
   json += ",\"manualSaturation\":" + String(manualSaturation);
+  json += ",\"motorRunning\":"; json += motor.running() ? "true" : "false";
+  json += ",\"motorDirection\":" + String(motor.direction());
+  json += ",\"motorDiagnostic\":"; json += motor.diagnostic() ? "true" : "false";
   json += ",\"cold\":" + String(range.cold, 1) + ",\"warm\":" + String(range.warm, 1);
   json += ",\"dry\":" + String(range.dry, 1) + ",\"wet\":" + String(range.wet, 1) + "}";
   server.sendHeader("Cache-Control", "no-store");
@@ -98,6 +117,19 @@ bool numberArg(const char *name, float low, float high, float &out) {
   return end != value.c_str() && *end == '\0' && isfinite(out) && out >= low && out <= high;
 }
 void badRequest() { server.send(400, "text/plain; charset=utf-8", "Nieprawidłowe ustawienia."); }
+void controlMotor() {
+  const String action = server.arg("action");
+  if (server.args() != 1 || (action != "left" && action != "right" && action != "stop" && action != "test")) {
+    badRequest(); return;
+  }
+  if (action == "stop") stopMotor();
+  else if (motor.running()) {
+    server.send(409, "text/plain; charset=utf-8", "Poczekaj na koniec ruchu lub naciśnij Stop.");
+    return;
+  } else if (action == "test") motor.startDiagnostic(millis());
+  else motor.start(action == "left" ? -1 : 1, millis());
+  sendState();
+}
 void control() {
   String mode = server.arg("mode");
   if (mode == "off" && server.args() == 1) { enabled = false; applyColor(); sendState(); return; }
@@ -133,7 +165,7 @@ void configureRange() {
 
 void setup() {
   Serial.begin(115200);
-  digitalWrite(23, LOW); pinMode(23, OUTPUT);  // Dawna niebieska LED wyłączona.
+  for (uint8_t pin : STEPPER_PINS) { digitalWrite(pin, LOW); pinMode(pin, OUTPUT); }
   pwmOK = true;
   for (uint8_t pin : RGB_PINS) {
     digitalWrite(pin, COMMON_ANODE ? HIGH : LOW); pinMode(pin, OUTPUT);
@@ -146,7 +178,7 @@ void setup() {
   dht.begin(); lastAttempt = millis();
   WiFi.mode(WIFI_STA); WiFi.setHostname(DEVICE_HOSTNAME); WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   while (WiFi.status() != WL_CONNECTED) delay(100);
-  OtaService::begin();
+  OtaService::begin(stopMotor);
   server.on("/", HTTP_GET, []() {
     server.sendHeader("Cache-Control", "no-store");
     server.send_P(200, "text/html; charset=utf-8", WEB_PAGE);
@@ -154,11 +186,14 @@ void setup() {
   server.on("/api/state", HTTP_GET, sendState);
   server.on("/api/control", HTTP_POST, control);
   server.on("/api/range", HTTP_POST, configureRange);
+  server.on("/api/motor", HTTP_POST, controlMotor);
   server.begin();
 }
 void loop() {
   OtaService::handle();
   server.handleClient();
+  handleMotor();
   sampleSensor();
+  handleMotor();
   delay(1);
 }

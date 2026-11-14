@@ -50,8 +50,9 @@ Wystarczy ten plik i docs/AI_WORKFLOW.md: osobny skill nie jest obecnie wymagany
    z pomiarem wydajności zasilania rzeczywistej płytki. Obecny eksperyment to
    DHT11 + KY-016 (docs/CLIMATE_RGB.md); stara LED i przewody zostały usunięte
    według potwierdzenia użytkownika. 2026-11-14 użytkownik wrócił do planowania
-   SG90 oraz krokowca 28BYJ-48: patrz docs/HARDWARE.md. Na razie ocena wariantów,
-   bez nowego kodu napędów i montażu; działające DHT11/RGB zostają.
+   SG90 oraz krokowca 28BYJ-48, następnie wybrał krokowiec z ULN2003.
+   Kod i plan montażu: docs/STEPPER_WEB.md; działające DHT11/RGB zostają.
+   Montaż i upload krokowca wymagają osobnego potwierdzenia wykonania.
 2. Ustal, czy pracujemy na ESP32-1 czy ESP32-2. Użytkownik potwierdził identyczność
    obu płytek: mapa P/L jest wspólna, nie pytaj ponownie o jej zgodność.
    Użytkownik nie planuje innych modeli ESP32. Potwierdzone adresy otworów są

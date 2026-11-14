@@ -7,6 +7,7 @@
 | ESP32-1 | PCB z napisami NodeMCU / ESP-32S / V1.1; OTA esp32-1 | wydajność toru 5V pod obciążeniem serwa |
 | ESP32-2 | użytkownik potwierdził identyczność płytek; OTA esp32-2 | aktualny montaż i przewody osobno od ESP32-1 |
 | Zasilacz USB | 5 V, 2 A | marka/model, stan i parametry dodatkowych obciążeń |
+| Wyjście USB lampki biurkowej | użytkownik potwierdził oznaczenie `OUT 5V/1A` (2026-11-14) | stabilność napięcia pod obciążeniem; planowane zasilanie ESP32 z DHT11 i KY-016 przez cały kabel USB, bez silnika na tym torze |
 | Kabel | cały USB Micro-B | do uploadu USB wymagana obsługa danych |
 | Płytka stykowa | oznaczone rzędy | orientacja i ciągłość szyn zasilających |
 | Niebieska LED | dwunóżkowa; działa na ESP32-1 przez stronę WWW; GPIO23 i rezystor 1 kΩ | dokładny typ i parametry optyczne nieustalone |
@@ -20,6 +21,7 @@
 | Moduł RGB LED KY-016 | użytkownik potwierdził B G R − i trzy rezystory 151 (150 Ω); typ ze wspólną katodą | test kolorów i rzeczywistej jasności |
 | Matryca LED 8×8 | użytkownik podał 1588AS, 16 nóżek, po 8 na stronę; bez MAX7219 | producent, polaryzacja i mapa wyprowadzeń egzemplarza, rozstaw nóżek, projekt ograniczenia prądu i odświeżania |
 | Tranzystory | użytkownik ma prawdopodobnie 3 sztuki; napisy C3225 oraz 2 H | liczba sztuk, zgodność obudowy i wyprowadzeń z 2SC3225; nie podłączone |
+| Moduł przekaźnika | użytkownik podał napis „tongling 5vdc jqc 3ff sz”; odpowiada rodzinie przekaźników Tongling JQC-3FF-S-Z z cewką 5 V DC | dokładny wariant płytki, oznaczenia zacisków i wejść, obecność sterownika cewki, zgodność wejścia z logiką ESP32 3,3 V; brak potwierdzonego montażu |
 | Inne moduły Arduino | różne elementy | oznaczenia i dokumentacja |
 
 Adresy IP nie są częścią publicznej dokumentacji; lokalny spis jest w .local/.
@@ -86,6 +88,26 @@ Użytkownik wcześniej zrezygnował z serwa; przygotowany kod usunięto bez uplo
 z możliwością wyboru tylko jednego silnika. Na razie planowanie, bez nowego kodu,
 montażu i testu ruchu. Zachowano [historię eksperymentu](SERVO_WEB.md).
 
+### Moduł przekaźnika Tongling (2026-11-14)
+
+- Napis przekazany przez użytkownika: `tongling 5vdc jqc 3ff sz`.
+  Odpowiada rodzinie JQC-3FF-S-Z; nie identyfikuje całej płytki modułu.
+- `5VDC` określa nominalne napięcie cewki przekaźnika, nie potwierdza
+  zgodności wejścia sterującego modułu z GPIO ESP32 3,3 V.
+- Może służyć do włączania/wyłączania osobnego obwodu niskonapięciowego,
+  np. małego wentylatora DC po przekroczeniu temperatury mierzonej DHT11.
+  Dobór obciążenia wymaga sprawdzenia styków i prądu rozruchowego;
+  obciążenia indukcyjne wymagają odpowiedniego tłumienia przepięć.
+- Nie zastępuje zasilacza, regulatora napięcia ani sterownika ULN2003.
+  Nie ustawia kąta SG90 ani nie wykonuje sekwencji kroków 28BYJ-48.
+- Przed montażem ustalić oznaczenia pinów płytki, układ sterowania cewką
+  i poziomy wejścia. Samej cewki nie podłączać bezpośrednio do GPIO.
+  Nie przypisano pinów ESP32 ani nie potwierdzono podłączenia.
+- Źródło identyfikacji rodziny i wariantu cewki 5 V:
+  [Tongling JQC-3FF-S-Z 5VDC](https://en.tonglingrelay.com/product/JQC-3FF-S-Z-5VDC-15A-5V-Relay-1065.html?productCateId=23).
+  Parametry styków i pinout konkretnego modułu pozostają do sprawdzenia;
+  nie przenosić automatycznie danych wariantu referencyjnego na egzemplarz.
+
 ### Silnik krokowy 28BYJ-48 (2026-11-14)
 
 - Dokładny napis przepisany przez użytkownika: `step motor 28byj-48 5vdc 15031801`.
@@ -112,7 +134,9 @@ montażu i testu ruchu. Zachowano [historię eksperymentu](SERVO_WEB.md).
 - Nie podłączać uzwojeń do GPIO ani 3V3. Potrzebny jest odpowiedni stopień
   sterujący i zasilanie silnika 5 V ze wspólną masą ESP32.
 - Z typowym modułem IN1–IN4: cztery GPIO, SG90 wymaga dodatkowo jednego.
-  Nie przydzielono jeszcze konkretnych pinów; nie zmieniać działającego DHT11/RGB.
+  Wybrano krokowiec: IN1–IN4 na GPIO19/21/22/23, zgodnie z
+  [planem eksperymentu](STEPPER_WEB.md). DHT11/RGB bez zmian.
+  Przygotowanie kodu nie oznacza montażu ani uploadu.
 - Sterowanie programowe musi być nieblokujące, by zachować HTTP/OTA i odczyty.
   DHT11 krótko blokuje pętlę podczas odczytu; uwzględnić to w regularności kroków.
 - Pozycja krokowca wynika z liczby kroków. Po restarcie nie zna bezwzględnego
@@ -157,7 +181,22 @@ na podstawie sprawdzenia użytkownika. Użytkownik potwierdził, że obie płytk
 mapa P/L obowiązuje dla ESP32-1 i ESP32-2. Adresy otworów i okablowanie ustala się osobno. Nie utożsamiaj P/L z numeracją breadboardu.
 Przy pracy korzystaj także z lokalnego `.local/BREADBOARD.md`.
 
-## Zasilanie obecnego stanowiska
+## Plan zasilania krokowca (2026-11-14)
+
+Użytkownik wybrał 28BYJ-48 + ULN2003, bez SG90 i przekaźnika w układzie.
+Lampka ma wyjście USB `OUT 5V/1A`: planowane zasilanie ESP32 + DHT11/KY-016
+całym kablem. Osobna ładowarka 5 V / 2 A ma zasilać ULN2003 i silnik.
+Użytkownik posiada już przecięty kabel USB i potwierdził wcześniejsze zasilanie
+ESP/Arduino jego odsłoniętymi przewodami: czerwony plus, czarny minus.
+To przesłanka polaryzacji, nie aktualny pomiar napięcia. Nie zalecono nowego cięcia kabla.
+Miernik DT830BUZ na zdjęciu pokazuje symbol słabej baterii; wyniki 7,68/10,04 V
+oraz przekroczenia zakresu nie są wiarygodnym potwierdzeniem napięcia zasilacza.
+Użytkownik obecnie nie może wymienić baterii. Dalszy plan opiera się na oznaczeniu
+ładowarki 5 V i historii kabla; napięcia oraz ciągłości nie zweryfikowano pomiarem.
+Łączymy masy, bez łączenia plusów źródeł i bez zasilania silnika przez ESP32.
+Montaż, napięcia pod obciążeniem i ruch nadal niesprawdzone.
+
+## Zasilanie wcześniejszego stanowiska
 
 ```text
 Zasilacz USB 5 V / 2 A ── cały kabel USB Micro-B ── gniazdo USB płytki ESP32
@@ -237,3 +276,18 @@ w module bez sprawdzenia. Dodanie do inwentarza nie oznacza wykonanego montażu.
 Źródło ograniczeń układu: [ESP32 datasheet](https://documentation.espressif.com/esp32_datasheet_en.html).
 Oznaczenia na devboardzie zawsze sprawdź z jego pinoutem. Podłączaj i zmieniaj przewody
 przy odłączonym zasilaniu, sprawdź zwarcia, a dopiero potem uruchamiaj.
+
+### Rozpoznanie pary zworki ULN2003 — dalsza diagnostyka
+
+Użytkownik oznaczył cztery punkty na zdjęciu spodu PCB, od góry zdjęcia:
+zielony, zielony, czerwony (+), brązowy (−). Analiza widocznych ścieżek wskazuje,
+że czerwony (+) jest połączony z dolnym zielonym punktem i torem COM sterownika,
+a górny zielony prowadzi do wspólnego toru zasilania silnika/wskaźników.
+Para zielonych punktów jest zatem miejscem mostka doprowadzającego plus
+na tor silnika. To identyfikacja ze zdjęcia i oznaczeń użytkownika,
+nie wynik pomiaru ciągłości. Zalecono przy obu źródłach odłączonych połączyć
+wyłącznie tę parę, izolowaną zworką lub przewodem żeńsko-żeńskim.
+Nie zwierać + z −. Użytkownik następnie potwierdził obrót silnika i świecenie
+diod po założeniu mostka. Mostek jest wymagany w docelowym układzie tego
+egzemplarza; wcześniejsze zapisy o nieznanej funkcji pinów są historią diagnozy.
+Znaczenie COM (pin 9): [TI ULN2003A, tabela 4.1](https://www.ti.com/lit/ds/symlink/uln2003a.pdf).

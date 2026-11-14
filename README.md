@@ -13,10 +13,12 @@ A hands-on playground for **two ESP-WROOM-32 development boards**, wireless firm
 
 - 🛜 Password-protected ArduinoOTA updates, separated from experiment code.
 - 🧩 Two PlatformIO environments in one codebase: `esp32-1` and `esp32-2`.
-- 🌐 A local web page with on/off buttons for an external blue LED on GPIO23.
+- 🌐 A local web page for DHT11, RGB lighting, and short 28BYJ-48 stepper movements.
 - 🔐 Ignored local credentials; no private network addresses in shared configuration.
 - 🛠️ VS Code tasks for building and uploading each board.
 - 🤖 Polish instructions for working with GPT/Codex and planning wiring safely.
+
+**Stepper addition:** ULN2003 IN1–IN4 use GPIO19/21/22/23, with short left/right movements and Stop. Separate 5 V motor power and common ground are required. Wiring, upload, and motor behavior still need hardware verification; see [the stepper guide](docs/STEPPER_WEB.md).
 
 **In progress:** DHT11 + KY-016 climate lighting: manual RGB and brightness, plus automatic colors over 17–22°C with humidity-based saturation. Both firmware targets compile; the web UI was tested with simulated readings. Wiring, upload, sensor readings, physical colors, and subsequent OTA still need hardware verification.
 
@@ -111,6 +113,7 @@ See [hardware and wiring](docs/HARDWARE.md) before connecting modules. ESP32 GPI
 
 ## 🧭 Guides
 
+- [28BYJ-48 + ULN2003 — stepper wiring and controls in Polish](docs/STEPPER_WEB.md)
 - [DHT11 + KY-016 — current experiment, wiring plan and behavior in Polish](docs/CLIMATE_RGB.md)
 - [Previous blue LED experiment — historical wiring and usage in Polish](docs/LED_WEB.md)
 - [Setup, migration, commands, and macOS troubleshooting](docs/SETUP.md)

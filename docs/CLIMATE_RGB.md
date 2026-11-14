@@ -31,7 +31,8 @@ w stałych otworach opisanych lokalnie. Moduły nowego eksperymentu:
 
 Dokładny plan otworów i stan montażu znajdują się w `.local/BREADBOARD.md`.
 Połączenia wykonuj przy odłączonym USB. Zasilanie ESP pozostaje z obecnej ładowarki
-5 V / 2 A przez cały kabel Micro-B. Na GPIO oraz zasilanie DHT dajemy 3,3 V,
+5 V / 2 A przez cały kabel Micro-B. W nowym planie z krokowcem ESP32 otrzymuje
+zasilanie z USB lampki 5 V / 1 A; szczegóły: [STEPPER_WEB.md](STEPPER_WEB.md). Na GPIO oraz zasilanie DHT dajemy 3,3 V,
 nie 5 V. Oba moduły mają wspólną masę ESP32.
 
 KY-016 ma trzy potwierdzone rezystory 150 Ω; nie dodajemy rezystora do wspólnej
