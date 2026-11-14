@@ -22,6 +22,8 @@ A hands-on playground for **two ESP-WROOM-32 development boards**, wireless firm
 
 **In progress:** DHT11 + KY-016 climate lighting: manual RGB and brightness, plus automatic colors over 17–22°C with humidity-based saturation. Both firmware targets compile; the web UI was tested with simulated readings. Wiring, upload, sensor readings, physical colors, and subsequent OTA still need hardware verification.
 
+SG90 addition: GPIO16, a 45–135° control slider, center/release buttons, and automatic signal release. Servo and stepper commands are interlocked. Separate motor power is required; servo wiring and operation still need hardware verification. See [the servo guide](docs/SERVO_WEB.md).
+
 ## 🚀 Quick start
 
 Install VS Code with the PlatformIO IDE extension, then open this project folder.

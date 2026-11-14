@@ -291,3 +291,16 @@ Nie zwierać + z −. Użytkownik następnie potwierdził obrót silnika i świe
 diod po założeniu mostka. Mostek jest wymagany w docelowym układzie tego
 egzemplarza; wcześniejsze zapisy o nieznanej funkcji pinów są historią diagnozy.
 Znaczenie COM (pin 9): [TI ULN2003A, tabela 4.1](https://www.ti.com/lit/ds/symlink/uln2003a.pdf).
+
+### SG90 ponownie zlecone — plan dodatku
+
+Użytkownik zlecił dodanie SG90 obok działającego krokowca, DHT i RGB.
+Plan: GPIO16 (L-08), osobny od ESP32 tor 5 V z istniejącej ładowarki silników
+5 V / 2 A, wspólna masa. Program ogranicza początkowy zakres do 45–135°,
+auto-wyłącza sygnał i rozdziela ruchy napędów w czasie. Nie jest to potwierdzenie
+budżetu prądowego pod obciążeniem. Montaż, upload i ruch SG90 jeszcze
+niepotwierdzone; aktualny plan: [SERVO_WEB.md](SERVO_WEB.md).
+
+SG90: użytkownik następnie potwierdził działanie serwa. Podstawowy montaż
+i ruch uznano za potwierdzone przez użytkownika, bez pomiaru prądów.
+Aktualne sterowanie i nowe ustawienia: [SERVO_WEB.md](SERVO_WEB.md).

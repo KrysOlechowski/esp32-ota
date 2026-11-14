@@ -51,8 +51,17 @@ Oszacowanie uzwojeń i identyfikacja modułu: [HARDWARE.md](HARDWARE.md).
 
 ## Sterowanie
 
-- Lewo/Prawo: 128 półkroków z odstępem co najmniej 10 ms, około 1,3 s bez opóźnień.
-  Nie obiecujemy dokładnego kąta; przekładnia i obciążenie wpływają na ruch.
+- Lewo/Prawo: wybór kąta 1–360° (domyślnie 90°), odstęp zależny od prędkości: 20/10/5 ms.
+  Osobne przyciski pełnego obrotu w obu kierunkach. Nominalnie 4096 półkroków
+  na obrót, około 82/41/20,5 s dla 50/100/200 półkroków/s. To wartość przybliżona dla przekładni nominalnie 1:64;
+  dokładny obrót egzemplarza wymaga kalibracji. Nie obiecujemy dokładnego kąta.
+- Ustaw tutaj zero: bieżące położenie jako umowne 0°, bez ruchu. Dostępne na postoju.
+- Wróć do zera: najkrótsza droga do umownego zera w obrębie obrotu, bez odtwarzania
+  liczby wcześniejszych pełnych obrotów. Pozycja pokazywana modulo 360°.
+- Brak enkodera i czujnika bazowania: program liczy wysłane kroki, nie mierzy osi.
+  Restart i test A–D kasują ustawienie zera. Ręczne poruszenie, luz przekładni
+  lub zgubienie kroków unieważniają fizyczne odniesienie; ustawić zero ponownie.
+  Przy wyłączonych cewkach nie ma elektrycznego trzymania osi.
 - Test A–D: po początkowych 0,5 s włącza kolejno IN1, IN2, IN3, IN4,
   każde osobno na co najmniej 0,5 s, następnie wyłącza wszystkie wyjścia.
   Może lekko poruszyć silnikiem; to próba wyjść, nie test obrotu.
@@ -62,17 +71,21 @@ Oszacowanie uzwojeń i identyfikacja modułu: [HARDWARE.md](HARDWARE.md).
 - Cewki wyłączone po ruchu, przy restarcie, utracie Wi-Fi i rozpoczęciu OTA.
   Nie ma elektrycznego podtrzymania pozycji podczas postoju.
 - Nowy ruch podczas aktywnego ruchu jest odrzucany (HTTP 409).
-- Ochronny limit czasu 5 s, sprawdzany w pętli. Nie zastępuje zabezpieczenia
+- Ochronny limit czasu: większa z wartości 5 s i czas zadanych kroków przy wybranej prędkości + 2 s,
+  sprawdzany w pętli. Nie zastępuje zabezpieczenia
   sprzętowego i nie zadziała podczas całkowitego zawieszenia procesora.
 - DHT nadal odczytywany co 2,5 s; jego krótka blokada może chwilowo wydłużyć krok.
   Brak gwałtownego nadrabiania kroków po przerwie. HTTP i OTA pozostają w pętli.
 - Status pokazuje stan programu, nie fizyczny ruch ani podłączenie silnika.
 - Po restarcie nie znamy pozycji osi. Pierwszy test bez obciążenia, bez ruchu auto.
 
-API: POST `/api/motor` z jednym parametrem `action=left`, `right`, `stop` lub `test`.
+API: POST `/api/motor` z `action=left`/`right` i opcjonalnym `degrees=1..360`. Bez kąta zachowany
+jest dawny ruch 128 półkroków dla zgodności. Pozostałe akcje (bez dodatkowych
+parametrów): `stop`, `test`, `zero`, `home`. Home bez ustawionego zera daje 400.
 Nieprawidłowe parametry: HTTP 400, bez zmiany ruchu.
 GET `/api/state` dodaje `motorRunning`, `motorDirection` (−1, 0, 1)
-i `motorDiagnostic` (aktywny test A–D).
+i `motorDiagnostic` (aktywny test A–D), `motorZeroKnown`, `motorAngle`
+(szacowany kąt modulo obrót; znaczenie względem zera tylko przy motorZeroKnown).
 Strona odświeża stan co sekundę; Stop pozostaje dostępny podczas innych żądań.
 
 ## Uruchomienie po montażu
@@ -122,3 +135,16 @@ niebieskiej LED diagnostycznej z rezystorem i przewodami oraz przywrócenie
 bezpośredniego GPIO19 → IN1. Ponowny test po usunięciu kontrolki: działa.
 Mostek zasilania ULN2003 pozostaje. Przycisk Test A–D w programie nadal
 steruje diodami modułu; nie wymaga osobnej kontrolki.
+
+Rozszerzenie kąta i zera: przygotowane bez zmiany przewodów; upload i test
+na silniku tej wersji nadal do wykonania. Testy host obejmują pełne 4096 kroków
+bez przedwczesnego timeoutu, zawijanie kąta, najkrótszy powrót do zera, Stop,
+wyzerowanie i unieważnienie zera w teście A–D.
+
+Wybór prędkości: Wolno/Normalnie/Szybko = 50/100/200 półkroków/s,
+domyślnie 100. API left/right/home przyjmuje opcjonalne `speed=50`, `100`
+lub `200`; inne wartości odrzucane przed zmianą stanu. Stop/test/zero nie
+przyjmują speed. Wybór z UI dotyczy następnego ruchu, także powrotu do zera.
+Brak rampy przyspieszenia; jeżeli obciążenie powoduje gubienie kroków, wybrać
+niższą prędkość i ustawić ponownie umowne zero. Nowa wersja wymaga uploadu
+i sprawdzenia na silniku; okablowanie bez zmian.
