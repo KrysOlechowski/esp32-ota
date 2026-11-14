@@ -79,5 +79,11 @@ const context = vm.createContext({URLSearchParams,document:{getElementById:id=>e
   await elements.get('servoRelease').onclick();
   await elements.get('servoPlus').onclick();
   assert.deepEqual(calls.at(-1).data,{action:'move',angle:'100',speed:'50'});
+  await elements.get('servoRelease').onclick();
+  await elements.get('servoProbeCenter').onclick();
+  assert.deepEqual(calls.at(-1).data,{action:'pulse',us:'1500'});
+  await elements.get('servoRelease').onclick();
+  await elements.get('servoProbeMinus').onclick();
+  assert.deepEqual(calls.at(-1).data,{action:'pulse',us:'1475'});
   console.log('Stepper and servo web controls: PASS');
 })().catch(error=>{console.error(error);process.exitCode=1});

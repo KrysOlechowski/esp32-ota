@@ -9,6 +9,7 @@
 #include "web_page.h"
 #include "stepper_motion.h"
 #include "servo_motion.h"
+#include "servo_probe.h"
 
 WebServer server(80);
 namespace {
@@ -19,6 +20,7 @@ constexpr uint8_t STEPPER_PINS[] = {19, 21, 22, 23};  // IN1..IN4, L-12/14/17/18
 constexpr uint8_t SERVO_PIN = 16; // L-08, osobny timer LEDC od RGB
 constexpr uint8_t SERVO_CHANNEL = 6;
 ServoMotion servo;
+ServoProbe servoProbe;
 bool servoAttached = false, servoOK = true;
 Preferences servoPrefs;
 bool servoStorageOK = false, servoZeroKnown = false, servoHasCommand = false;
@@ -45,6 +47,7 @@ void writeMotor() {
 void stopMotor() { motor.stop(); writeMotor(); }
 void releaseServo() {
   servo.release();
+  servoProbe.release();
   if (servoAttached) ledcDetach(SERVO_PIN);
   servoAttached = false;
   digitalWrite(SERVO_PIN, LOW); pinMode(SERVO_PIN, OUTPUT);
@@ -53,12 +56,13 @@ void stopDrives() { stopMotor(); releaseServo(); }
 void handleServo() {
   if (WiFi.status() != WL_CONNECTED) { releaseServo(); return; }
   servo.tick(millis());
-  if (!servo.active()) { if (servoAttached) releaseServo(); return; }
+  servoProbe.tick(millis());
+  if (!servo.active() && !servoProbe.active()) { if (servoAttached) releaseServo(); return; }
   if (!servoAttached) {
     servoAttached = ledcAttachChannel(SERVO_PIN, 50, 16, SERVO_CHANNEL);
     servoOK = servoAttached;
   }
-  if (!servoAttached || !ledcWrite(SERVO_PIN, servo.duty())) {
+  if (!servoAttached || !ledcWrite(SERVO_PIN, servoProbe.active() ? servoProbe.duty() : servo.duty())) {
     servoOK = false; releaseServo();
   }
 }
@@ -126,7 +130,9 @@ void sendState() {
   json += ",\"color\":\"" + hexColor(applied) + "\",\"manualColor\":\"" + hexColor(manual) + "\"";
   json += ",\"brightness\":" + String(brightness);
   json += ",\"manualSaturation\":" + String(manualSaturation);
-  json += ",\"servoActive\":"; json += servo.active() ? "true" : "false";
+  json += ",\"servoActive\":"; json += (servo.active() || servoProbe.active()) ? "true" : "false";
+  json += ",\"servoProbeActive\":"; json += servoProbe.active() ? "true" : "false";
+  json += ",\"servoPulse\":" + String(servoProbe.pulse());
   json += ",\"servoOK\":"; json += servoOK ? "true" : "false";
   json += ",\"servoAngle\":" + String(servo.angle());
   json += ",\"servoTarget\":" + String(servo.target());
@@ -169,7 +175,7 @@ void controlMotor() {
     badRequest(); return;
   }
   if (action == "stop") stopMotor();
-  else if (motor.running() || servo.active()) {
+  else if (motor.running() || servo.active() || servoProbe.active()) {
     server.send(409, "text/plain; charset=utf-8", "Poczekaj na zakończenie pracy aktywnego napędu lub wyłącz jego sygnał."); return;
   } else if (action == "test") motor.startDiagnostic(millis());
   else if (action == "zero") motor.setZero();
@@ -183,8 +189,19 @@ void controlMotor() {
 void controlServo() {
   const String action = server.arg("action");
   if (action == "release" && server.args() == 1) { releaseServo(); sendState(); return; }
+  if (action == "pulse") {
+    float pulse;
+    if (server.args() != 2 || !numberArg("us",500,2500,pulse) || floorf(pulse)!=pulse) {
+      badRequest(); return;
+    }
+    if (motor.running() || servo.active() || servoProbe.active()) {
+      server.send(409,"text/plain; charset=utf-8","Poczekaj na wyłączenie sygnału napędu."); return;
+    }
+    if (!servoProbe.start(int(pulse),millis())) { badRequest(); return; }
+    servoHasCommand=false; handleServo(); sendState(); return;
+  }
   if (action == "zero" && server.args() == 1) {
-    if (motor.running() || servo.active() || !servoHasCommand) {
+    if (motor.running() || servo.active() || servoProbe.active() || !servoHasCommand) {
       server.send(409, "text/plain; charset=utf-8", "Najpierw ustaw kąt i poczekaj na zakończenie ruchu."); return;
     }
     const uint8_t next = servo.angle();
@@ -204,6 +221,10 @@ void controlServo() {
   if (motor.running()) {
     server.send(409, "text/plain; charset=utf-8", "Najpierw zatrzymaj krokowiec."); return;
   }
+  if (servoProbe.active()) {
+    server.send(409,"text/plain; charset=utf-8","Poczekaj na koniec impulsu testowego."); return;
+  }
+  servoProbe.reset();
   servo.move(int(angle), millis(), uint16_t(speed)); servoHasCommand = true;
   handleServo(); sendState();
 }

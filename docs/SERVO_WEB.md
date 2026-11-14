@@ -116,3 +116,32 @@ Nie wykonano uploadu, testu HTTP na urządzeniu ani ruchu fizycznego SG90.
 Użytkownik potwierdził działanie podstawowego SG90. Nowe ustawienia zera
 i prędkości przeszły testy host i symulowanego API panelu; pamięć NVS
 oraz powrót do zera po restarcie wymagają sprawdzenia na urządzeniu.
+
+## Ręczny test zakresu impulsów — przygotowany, jeszcze niewgrany
+
+Suwak stopni używa umownej skali; dotychczasowe 0–180 → 1000–2000 µs nie
+potwierdza 180° mechanicznego ruchu. Producenci różnie wiążą impuls z kątem:
+[Pololu — Servo control interface in detail](https://www.pololu.com/blog/17/servo-control-interface-in-detail).
+
+Sekcja Test rzeczywistego zakresu: środek 1500 µs, potem pojedyncze kroki
+−25/+25 µs, sygnał 50 Hz przez 600 ms, następnie automatyczne wyłączenie.
+Każdy kolejny impuls musi być oddalony o najwyżej 25 µs od poprzedniego;
+wyjątkiem jest świadomy powrót przyciskiem do 1500 µs. Program dopuszcza
+500–2500 µs, co jest obwiednią testu, NIE potwierdzonym zakresem bezpieczeństwa
+konkretnego SG90. Nie wykonuje samoczynnego przebiegu do skrajnych wartości.
+
+Test bez obciążenia. Przerwać przy braku dalszego ruchu, brzęczeniu lub napieraniu
+na ogranicznik. Zostawić zapas względem pierwszego takiego objawu; nie powtarzać
+poleceń na ograniczniku. Do ustalenia rzeczywistej liczby stopni potrzebna jest
+obserwacja i np. kątomierz — ESP32 nie ma informacji o osi ani prądzie.
+Zapisać ostatni spokojnie działający impuls w każdą stronę i zmierzony kąt;
+wynik pozwoli dopiero dobrać skalę suwaka.
+
+API: action=pulse&us=1500, całkowite 500–2500, krok maks. 25 z wyjątkiem środka.
+Polecenie odrzucane podczas aktywnego napędu. Stan dodaje servoPulse (ostatnie
+zadanie testowe), servoProbeActive; servoActive obejmuje też test. Zwolnij serwo,
+utrata Wi-Fi i OTA kończą test. Test blokuje krokowiec, nie zmienia zapisanego
+zera NVS, ale unieważnia możliwość zapisu nowego zera do kolejnego zwykłego
+polecenia kąta. Nie kalibruje automatycznie istniejącego suwaka.
+Test host sprawdza granice, krok, czas wyłączenia i przepełnienie millis;
+test UI sprawdza polecenia środka oraz −25 µs.
