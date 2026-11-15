@@ -15,6 +15,7 @@ WebServer server(80);
 namespace {
 // Plan sygnałów. Montaż modułów wymaga potwierdzenia pinoutu egzemplarzy.
 constexpr uint8_t RGB_PINS[] = {25, 26, 27};  // P-11, P-10, P-09
+constexpr uint8_t SECOND_RGB_PINS[] = {17, 32, 33}; // R/G/B, L-09/P-13/P-12
 constexpr uint8_t DHT_PIN = 18;                // L-11
 constexpr uint8_t STEPPER_PINS[] = {19, 21, 22, 23};  // IN1..IN4, L-12/14/17/18
 constexpr uint8_t SERVO_PIN = 16; // L-08, osobny timer LEDC od RGB
@@ -35,6 +36,10 @@ ClimateColor::RGB manual = {0, 100, 255}, applied = {0, 0, 0};
 bool automatic = false, enabled = false, sensorOK = false, pwmOK = false;
 uint8_t brightness = 60;
 uint8_t manualSaturation = 100;
+String secondMode = "sync";
+ClimateColor::RGB secondManual = {255, 0, 0}, secondApplied = {0, 0, 0};
+uint8_t secondBrightness = 60, secondAppliedBrightness = 0;
+bool secondPwmOK = false;
 float temperature = NAN, humidity = NAN;
 uint32_t lastAttempt = 0, lastSuccess = 0;
 bool hasReading = false;
@@ -78,9 +83,27 @@ String hexColor(ClimateColor::RGB c) {
   return String(s);
 }
 
+void applySecondary() {
+  secondApplied = {0, 0, 0}; secondAppliedBrightness = 0;
+  if (!secondPwmOK) return;
+  if (secondMode == "sync") { secondApplied = applied; secondAppliedBrightness = brightness; }
+  else if (secondMode == "manual") { secondApplied = secondManual; secondAppliedBrightness = secondBrightness; }
+  const uint8_t channels[] = {secondApplied.r, secondApplied.g, secondApplied.b};
+  for (uint8_t i = 0; i < 3; ++i) {
+    const uint8_t duty = lroundf(powf(channels[i] / 255.0f * secondAppliedBrightness / 100.0f, 2.2f) * 255);
+    if (!ledcWrite(SECOND_RGB_PINS[i], duty)) {
+      secondPwmOK = false; secondApplied = {0, 0, 0}; secondAppliedBrightness = 0;
+      for (uint8_t pin : SECOND_RGB_PINS) {
+        ledcDetach(pin); digitalWrite(pin, LOW); pinMode(pin, OUTPUT);
+      }
+      break;
+    }
+  }
+}
+
 void applyColor() {
   applied = {0, 0, 0};
-  if (!pwmOK) return;
+  if (!pwmOK) { applySecondary(); return; }
   if (enabled && (!automatic || sensorOK)) {
     applied = automatic ? ClimateColor::fromReading(temperature, humidity, range)
                         : ClimateColor::withSaturation(manual, manualSaturation);
@@ -101,6 +124,7 @@ void applyColor() {
       break;
     }
   }
+  applySecondary();
 }
 
 void sampleSensor() {
@@ -118,7 +142,7 @@ void sampleSensor() {
 
 void sendState() {
   String json;
-  json.reserve(1000);
+  json.reserve(1600);
   json = "{\"device\":\"" DEVICE_HOSTNAME "\",\"mode\":\"";
   json += automatic ? "auto" : "manual";
   json += "\",\"enabled\":"; json += enabled ? "true" : "false";
@@ -130,6 +154,12 @@ void sendState() {
   json += ",\"color\":\"" + hexColor(applied) + "\",\"manualColor\":\"" + hexColor(manual) + "\"";
   json += ",\"brightness\":" + String(brightness);
   json += ",\"manualSaturation\":" + String(manualSaturation);
+  json += ",\"secondMode\":\"" + secondMode + "\"";
+  json += ",\"secondColor\":\"" + hexColor(secondApplied) + "\"";
+  json += ",\"secondManualColor\":\"" + hexColor(secondManual) + "\"";
+  json += ",\"secondBrightness\":" + String(secondAppliedBrightness);
+  json += ",\"secondManualBrightness\":" + String(secondBrightness);
+  json += ",\"secondPwmOK\":"; json += secondPwmOK ? "true" : "false";
   json += ",\"servoActive\":"; json += (servo.active() || servoProbe.active()) ? "true" : "false";
   json += ",\"servoProbeActive\":"; json += servoProbe.active() ? "true" : "false";
   json += ",\"servoPulse\":" + String(servoProbe.pulse());
@@ -160,6 +190,21 @@ bool numberArg(const char *name, float low, float high, float &out) {
   return end != value.c_str() && *end == '\0' && isfinite(out) && out >= low && out <= high;
 }
 void badRequest() { server.send(400, "text/plain; charset=utf-8", "Nieprawidłowe ustawienia."); }
+void controlSecondary() {
+  const String mode = server.arg("mode");
+  if ((mode == "sync" || mode == "off") && server.args() == 1) {
+    secondMode = mode; applySecondary(); sendState(); return;
+  }
+  float level;
+  String color = server.arg("color");
+  if (mode != "manual" || server.args() != 3 || !numberArg("brightness",0,100,level) ||
+      floorf(level) != level || color.length() != 7 || color[0] != '#') { badRequest(); return; }
+  for (int i = 1; i < 7; ++i) if (!isxdigit(static_cast<unsigned char>(color[i]))) { badRequest(); return; }
+  const unsigned long value = strtoul(color.c_str()+1,nullptr,16);
+  secondManual = {uint8_t(value >> 16),uint8_t(value >> 8),uint8_t(value)};
+  secondBrightness = uint8_t(level); secondMode = mode;
+  applySecondary(); sendState();
+}
 void controlMotor() {
   const String action = server.arg("action");
   const bool move = action == "left" || action == "right";
@@ -279,6 +324,14 @@ void setup() {
   if (!pwmOK) {
     for (uint8_t pin : RGB_PINS) { ledcDetach(pin); digitalWrite(pin, COMMON_ANODE ? HIGH : LOW); pinMode(pin, OUTPUT); }
   }
+  secondPwmOK = true;
+  for (uint8_t i=0;i<3;++i) {
+    digitalWrite(SECOND_RGB_PINS[i],LOW); pinMode(SECOND_RGB_PINS[i],OUTPUT);
+    if (!ledcAttachChannel(SECOND_RGB_PINS[i],5000,8,3+i)) secondPwmOK = false;
+  }
+  if (!secondPwmOK) {
+    for (uint8_t pin : SECOND_RGB_PINS) { ledcDetach(pin); digitalWrite(pin,LOW); pinMode(pin,OUTPUT); }
+  }
   applyColor();
   dht.begin(); lastAttempt = millis();
   WiFi.mode(WIFI_STA); WiFi.setHostname(DEVICE_HOSTNAME); WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
@@ -293,6 +346,7 @@ void setup() {
   server.on("/api/range", HTTP_POST, configureRange);
   server.on("/api/motor", HTTP_POST, controlMotor);
   server.on("/api/servo", HTTP_POST, controlServo);
+  server.on("/api/second", HTTP_POST, controlSecondary);
   server.begin();
 }
 void loop() {

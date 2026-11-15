@@ -24,6 +24,8 @@ A hands-on playground for **two ESP-WROOM-32 development boards**, wireless firm
 
 SG90 addition: GPIO16, a 45–135° control slider, center/release buttons, and automatic signal release. Servo and stepper commands are interlocked. Separate motor power is required; servo wiring and operation still need hardware verification. See [the servo guide](docs/SERVO_WEB.md).
 
+Second RGB LED: sync with the main lamp or choose an independent color and brightness. GPIO17/32/33 drive R/G/B through individual 1 kΩ resistors; the common cathode goes to ground. Hardware verification after upload is pending. See [the second RGB guide](docs/RGB_BARE.md).
+
 ## 🚀 Quick start
 
 Install VS Code with the PlatformIO IDE extension, then open this project folder.

@@ -56,6 +56,9 @@ Wystarczy ten plik i docs/AI_WORKFLOW.md: osobny skill nie jest obecnie wymagany
    Użytkownik następnie zlecił SG90: docs/SERVO_WEB.md. Kod i plan przygotowane;
    działanie podstawowego SG90 potwierdzone przez użytkownika. Dodatki zera NVS
    i prędkości wymagają testu urządzenia. Nie uruchamiać serwa samoczynnie.
+   Goła RGB rozpoznana testem użytkownika: 1 B, 2 G, 3 wspólna katoda, 4 R.
+   Plan dodatkowych wyjść GPIO17/32/33 i panelu: docs/RGB_BARE.md. Montaż
+   docelowy i test z nowym firmware nadal niepotwierdzone.
 2. Ustal, czy pracujemy na ESP32-1 czy ESP32-2. Użytkownik potwierdził identyczność
    obu płytek: mapa P/L jest wspólna, nie pytaj ponownie o jej zgodność.
    Użytkownik nie planuje innych modeli ESP32. Potwierdzone adresy otworów są

@@ -26,6 +26,7 @@ const context = vm.createContext({URLSearchParams,document:{getElementById:id=>e
       const data=Object.fromEntries(options.body);
       calls.push({path,data});
       if(fail)throw Error('offline');
+      if(path==='/api/second')state={...state,secondMode:data.mode,secondColor:data.mode==='manual'?data.color:'#000000',secondBrightness:Number(data.brightness??0)};
       if(path==='/api/servo')state={...state,servoActive:['move','home'].includes(data.action),servoHasCommand:true,servoZeroKnown:state.servoZeroKnown||data.action==='zero',servoZero:data.action==='zero'?state.servoTarget:state.servoZero,servoTarget:Number(data.angle??state.servoTarget)};
       if(path==='/api/motor')state={...state,motorRunning:!['stop','zero','home'].includes(data.action),motorDirection:data.action==='stop'?0:data.action==='left'?-1:1,motorDiagnostic:data.action==='test'};
     }
@@ -85,5 +86,17 @@ const context = vm.createContext({URLSearchParams,document:{getElementById:id=>e
   await elements.get('servoRelease').onclick();
   await elements.get('servoProbeMinus').onclick();
   assert.deepEqual(calls.at(-1).data,{action:'pulse',us:'1475'});
-  console.log('Stepper and servo web controls: PASS');
+  await elements.get('servoRelease').onclick();
+  elements.get('secondColor').value='#00ff00';elements.get('secondBrightness').value='35';
+  await elements.get('secondManual').onsubmit({preventDefault(){}});
+  assert.deepEqual(calls.at(-1),{path:'/api/second',data:{mode:'manual',color:'#00ff00',brightness:'35'}});
+  assert.match(elements.get('secondState').textContent,/Własny kolor/);
+  assert.equal(state.manualColor,'#0064ff');assert.equal(state.enabled,false);
+  await elements.get('secondSync').onclick();assert.deepEqual(calls.at(-1).data,{mode:'sync'});
+  await elements.get('secondOff').onclick();assert.deepEqual(calls.at(-1).data,{mode:'off'});
+  assert.match(elements.get('secondState').textContent,/wyłączona/);
+  fail=true;await elements.get('secondSync').onclick();
+  assert.match(elements.get('secondMessage').textContent,/Nie potwierdzono/);
+  assert.equal(elements.get('secondApply').disabled,false);
+  console.log('Stepper, servo and second RGB web controls: PASS');
 })().catch(error=>{console.error(error);process.exitCode=1});
