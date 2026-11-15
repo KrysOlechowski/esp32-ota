@@ -12,11 +12,12 @@ elements.get('servoAngle').value = '90';
 elements.get('servoSpeed').value = '50';
 elements.get('motorDegrees').value = '90';
 elements.get('motorSpeed').value = '100';
+elements.get('lightEffectSelect').value='1';elements.get('motorAnim').value='swing';elements.get('servoAnim').value='wave';
 elements.get('color').value = '#0064ff';
-elements.get('brightness').value = '60';
+elements.get('brightness').value = '100';
 elements.get('saturation').value = '100';
 let state = {device:'test',temperature:20,humidity:50,sensorOK:true,pwmOK:true,enabled:false,
-  mode:'manual',ageSeconds:0,color:'#000000',manualColor:'#0064ff',brightness:60,
+  mode:'manual',ageSeconds:0,color:'#000000',manualColor:'#0064ff',brightness:100,secondMode:'sync',secondManualBrightness:100,
   manualSaturation:100,cold:17,warm:22,dry:30,wet:70,motorRunning:false,motorDirection:0,servoActive:false,servoOK:true,servoTarget:90};
 let calls = [], fail = false;
 const context = vm.createContext({URLSearchParams,document:{getElementById:id=>elements.get(id),
@@ -26,6 +27,9 @@ const context = vm.createContext({URLSearchParams,document:{getElementById:id=>e
       const data=Object.fromEntries(options.body);
       calls.push({path,data});
       if(fail)throw Error('offline');
+      if(path==='/api/light-effect')state={...state,lightEffect:Number(data.effect)};
+      if(path==='/api/motion-effect')state={...state,motionEffect:data.effect==='stop'?0:data.device==='motor'?1:4};
+      if(path==='/api/second-balance')state={...state,secondGainR:Number(data.r),secondGainG:Number(data.g),secondGainB:Number(data.b)};
       if(path==='/api/second')state={...state,secondMode:data.mode,secondColor:data.mode==='manual'?data.color:'#000000',secondBrightness:Number(data.brightness??0)};
       if(path==='/api/servo')state={...state,servoActive:['move','home'].includes(data.action),servoHasCommand:true,servoZeroKnown:state.servoZeroKnown||data.action==='zero',servoZero:data.action==='zero'?state.servoTarget:state.servoZero,servoTarget:Number(data.angle??state.servoTarget)};
       if(path==='/api/motor')state={...state,motorRunning:!['stop','zero','home'].includes(data.action),motorDirection:data.action==='stop'?0:data.action==='left'?-1:1,motorDiagnostic:data.action==='test'};
@@ -35,6 +39,8 @@ const context = vm.createContext({URLSearchParams,document:{getElementById:id=>e
 (async()=>{
   vm.runInContext(script,context);
   await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(elements.get('brightness').value,100);
+  assert.equal(elements.get('secondBrightness').value,100);
   await elements.get('motorLeft').onclick();
   assert.deepEqual(calls.at(-1),{path:'/api/motor',data:{action:'left',degrees:'90',speed:'100'}});
   assert.equal(elements.get('servoMove').disabled,true);
@@ -98,5 +104,23 @@ const context = vm.createContext({URLSearchParams,document:{getElementById:id=>e
   fail=true;await elements.get('secondSync').onclick();
   assert.match(elements.get('secondMessage').textContent,/Nie potwierdzono/);
   assert.equal(elements.get('secondApply').disabled,false);
-  console.log('Stepper, servo and second RGB web controls: PASS');
+  fail=false;elements.get('secondGainR').value='100';elements.get('secondGainG').value='45';elements.get('secondGainB').value='65';
+  await elements.get('secondBalance').onsubmit({preventDefault(){}});
+  assert.deepEqual(calls.at(-1),{path:'/api/second-balance',data:{r:'100',g:'45',b:'65'}});
+  await elements.get('secondBalanceReset').onclick();
+  assert.deepEqual(calls.at(-1).data,{r:'100',g:'100',b:'100'});
+  await elements.get('effectStart').onclick();
+  assert.deepEqual(calls.at(-1).data,{effect:'1',brightness:'100'});
+  assert.match(elements.get('effectState').textContent,/Świeczka/);
+  await elements.get('effectStop').onclick();assert.equal(state.lightEffect,0);
+  await elements.get('motorAnimStart').onclick();
+  assert.deepEqual(calls.at(-1).data,{device:'motor',effect:'swing'});
+  assert.equal(elements.get('servoMove').disabled,true);
+  assert.equal(elements.get('motorLeft').disabled,true);
+  assert.equal(elements.get('motorAnimStop').disabled,false);
+  await elements.get('motorAnimStop').onclick();assert.equal(state.motionEffect,0);
+  await elements.get('servoAnimStart').onclick();assert.deepEqual(calls.at(-1).data,{device:'servo',effect:'wave'});
+  assert.equal(elements.get('motorAnimStart').disabled,true);
+  await elements.get('servoAnimStop').onclick();assert.equal(state.motionEffect,0);
+  console.log('UI controls, defaults and effects: PASS');
 })().catch(error=>{console.error(error);process.exitCode=1});

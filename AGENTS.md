@@ -58,7 +58,10 @@ Wystarczy ten plik i docs/AI_WORKFLOW.md: osobny skill nie jest obecnie wymagany
    i prędkości wymagają testu urządzenia. Nie uruchamiać serwa samoczynnie.
    Goła RGB rozpoznana testem użytkownika: 1 B, 2 G, 3 wspólna katoda, 4 R.
    Plan dodatkowych wyjść GPIO17/32/33 i panelu: docs/RGB_BARE.md. Montaż
-   docelowy i test z nowym firmware nadal niepotwierdzone.
+   docelowy i działanie potwierdzone przez użytkownika; nie przywracać testowego
+   połączenia 3V3 do wejścia rezystora po podłączeniu go do GPIO.
+   Efekty LED i jednorazowe sekwencje ruchu: docs/EFFECTS.md. Zachowaj Stop,
+   brak samoczynnego startu oraz blokadę obu napędów także podczas pauz sekwencji.
 2. Ustal, czy pracujemy na ESP32-1 czy ESP32-2. Użytkownik potwierdził identyczność
    obu płytek: mapa P/L jest wspólna, nie pytaj ponownie o jej zgodność.
    Użytkownik nie planuje innych modeli ESP32. Potwierdzone adresy otworów są

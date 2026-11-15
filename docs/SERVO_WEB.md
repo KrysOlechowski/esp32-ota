@@ -145,3 +145,6 @@ zera NVS, ale unieważnia możliwość zapisu nowego zera do kolejnego zwykłego
 polecenia kąta. Nie kalibruje automatycznie istniejącego suwaka.
 Test host sprawdza granice, krok, czas wyłączenia i przepełnienie millis;
 test UI sprawdza polecenia środka oraz −25 µs.
+
+Dodano jednorazowe efekty ruchu oraz efekty obu diod: [EFFECTS.md](EFFECTS.md).
+Nowa wersja przygotowana, upload i test efektów na sprzęcie jeszcze niewykonane.

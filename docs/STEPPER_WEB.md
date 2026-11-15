@@ -148,3 +148,6 @@ przyjmują speed. Wybór z UI dotyczy następnego ruchu, także powrotu do zera.
 Brak rampy przyspieszenia; jeżeli obciążenie powoduje gubienie kroków, wybrać
 niższą prędkość i ustawić ponownie umowne zero. Nowa wersja wymaga uploadu
 i sprawdzenia na silniku; okablowanie bez zmian.
+
+Dodano jednorazowe efekty ruchu oraz efekty obu diod: [EFFECTS.md](EFFECTS.md).
+Nowa wersja przygotowana, upload i test efektów na sprzęcie jeszcze niewykonane.

@@ -17,7 +17,7 @@
 | Płytka sterownika silnika | ULN2003AN; diody A/B/C/D; 4 wlutowane wejścia IN1–IN4; 4 dolne piny, dwa oznaczone − i +, nadruk 5--12V; IN5–IN7 to puste pola | funkcja dwóch pozostałych dolnych pinów/ewentualnej zworki i zgodność poziomów sterujących |
 | Fotorezystor | użytkownik potwierdził dwie nóżki i zygzak na powierzchni; podejrzewa GL5516 | dokładny model niepotwierdzony; brak potwierdzonego montażu |
 | Czujnik DHT11 | mała płytka, 3 piny; użytkownik podał S po jednej stronie i − po drugiej; środek zasilanie wg referencji KY-015 | obecność i wartość pull-up; test rzeczywistych pomiarów |
-| Dioda RGB LED | 5 mm, 4-pin; użytkownik potwierdził świeceniem: 1 najkrótsza B, 2 długa G, 3 najdłuższa wspólna katoda, 4 długa R; ma 3 rezystory 1 kΩ | model i prądy niezmierzone; docelowy montaż i jednoczesne sterowanie jeszcze niepotwierdzone; plan RGB_BARE.md |
+| Dioda RGB LED | 5 mm, 4-pin; użytkownik potwierdził świeceniem: 1 najkrótsza B, 2 długa G, 3 najdłuższa wspólna katoda, 4 długa R; ma 3 rezystory 1 kΩ | model i prądy niezmierzone; użytkownik potwierdził działanie docelowego układu; szczegóły RGB_BARE.md |
 | Moduł RGB LED KY-016 | użytkownik potwierdził B G R − i trzy rezystory 151 (150 Ω); typ ze wspólną katodą | test kolorów i rzeczywistej jasności |
 | Matryca LED 8×8 | użytkownik podał 1588AS, 16 nóżek, po 8 na stronę; bez MAX7219 | producent, polaryzacja i mapa wyprowadzeń egzemplarza, rozstaw nóżek, projekt ograniczenia prądu i odświeżania |
 | Tranzystory | użytkownik ma prawdopodobnie 3 sztuki; napisy C3225 oraz 2 H | liczba sztuk, zgodność obudowy i wyprowadzeń z 2SC3225; nie podłączone |

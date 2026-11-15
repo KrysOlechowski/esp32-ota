@@ -59,7 +59,7 @@ Nie podciągaj sygnału do 5 V.
   Sucho oznacza pastelowe barwy, wilgotno — mocne, czyste kolory.
 - Zakresy temperatury i wilgotności można zmienić na stronie. To ustawienia
   mapowania koloru, nie kalibracja czujnika. Nie zapisują się po restarcie.
-- Restart: tryb ręczny, lampka wyłączona, jasność 60%, kolor domyślny #0064ff.
+- Restart: tryb ręczny, lampka wyłączona, jasność 100%, kolor domyślny #0064ff.
 - DHT odczytywany co 2,5 s. Odczyt biblioteki zajmuje krótko ok. 20–30 ms,
   pozostały czas pętla obsługuje HTTP i OTA. Nie jest to całkowicie asynchroniczny driver.
 - Błąd pomiaru gasi RGB w auto; ręczne sterowanie nadal działa. Ostatni poprawny
@@ -107,3 +107,7 @@ odłączenie sensora (przy wyłączonym zasilaniu), a następnie kolejne OTA.
 - [Keyestudio DHT11/KY-015: układ S / środek zasilanie / minus](https://docs.keyestudio.com/projects/KT0193F/en/latest/docs/30.html)
 - [Joy-IT DHT11: zasilanie 3,3 V i parametry pomiaru](https://www.sensorkit.joy-it.net/en/sensors/ky-015)
 - [Adafruit DHT: sterownik i odstęp odczytu](https://github.com/adafruit/DHT-sensor-library)
+
+Panel (2026-11-15): odczyty temperatury i wilgotności przeniesione na górę,
+poniżej osobne karty RGB i osobne karty napędów. Jasność początkowa obu RGB
+100%, druga w sync. Szczegóły korekcji barw: RGB_BARE.md.

@@ -6,10 +6,13 @@
 #include <private_config.h>
 #include "ota_service.h"
 #include "climate_color.h"
+#include "led_output.h"
 #include "web_page.h"
 #include "stepper_motion.h"
 #include "servo_motion.h"
 #include "servo_probe.h"
+#include "light_effects.h"
+#include "motion_effects.h"
 
 WebServer server(80);
 namespace {
@@ -20,6 +23,9 @@ constexpr uint8_t DHT_PIN = 18;                // L-11
 constexpr uint8_t STEPPER_PINS[] = {19, 21, 22, 23};  // IN1..IN4, L-12/14/17/18
 constexpr uint8_t SERVO_PIN = 16; // L-08, osobny timer LEDC od RGB
 constexpr uint8_t SERVO_CHANNEL = 6;
+LightEffects lights;
+MotionEffects motionEffects;
+uint32_t lastLightFrame=0;
 ServoMotion servo;
 ServoProbe servoProbe;
 bool servoAttached = false, servoOK = true;
@@ -34,12 +40,13 @@ DHT dht(DHT_PIN, DHT11);
 ClimateColor::Range range;
 ClimateColor::RGB manual = {0, 100, 255}, applied = {0, 0, 0};
 bool automatic = false, enabled = false, sensorOK = false, pwmOK = false;
-uint8_t brightness = 60;
+uint8_t brightness = 100;
 uint8_t manualSaturation = 100;
 String secondMode = "sync";
-ClimateColor::RGB secondManual = {255, 0, 0}, secondApplied = {0, 0, 0};
-uint8_t secondBrightness = 60, secondAppliedBrightness = 0;
+ClimateColor::RGB secondManual = {0, 100, 255}, secondApplied = {0, 0, 0};
+uint8_t secondBrightness = 100, secondAppliedBrightness = 0;
 bool secondPwmOK = false;
+uint8_t secondGain[] = {100, 100, 100};
 float temperature = NAN, humidity = NAN;
 uint32_t lastAttempt = 0, lastSuccess = 0;
 bool hasReading = false;
@@ -57,7 +64,7 @@ void releaseServo() {
   servoAttached = false;
   digitalWrite(SERVO_PIN, LOW); pinMode(SERVO_PIN, OUTPUT);
 }
-void stopDrives() { stopMotor(); releaseServo(); }
+void stopDrives() { motionEffects.stop(); stopMotor(); releaseServo(); }
 void handleServo() {
   if (WiFi.status() != WL_CONNECTED) { releaseServo(); return; }
   servo.tick(millis());
@@ -68,7 +75,7 @@ void handleServo() {
     servoOK = servoAttached;
   }
   if (!servoAttached || !ledcWrite(SERVO_PIN, servoProbe.active() ? servoProbe.duty() : servo.duty())) {
-    servoOK = false; releaseServo();
+    servoOK = false; motionEffects.stop(); releaseServo();
   }
 }
 void handleMotor() {
@@ -86,11 +93,12 @@ String hexColor(ClimateColor::RGB c) {
 void applySecondary() {
   secondApplied = {0, 0, 0}; secondAppliedBrightness = 0;
   if (!secondPwmOK) return;
-  if (secondMode == "sync") { secondApplied = applied; secondAppliedBrightness = brightness; }
+  if (lights.active()) { secondApplied=lights.frame(millis()).second; secondAppliedBrightness=brightness; }
+  else if (secondMode == "sync") { secondApplied = applied; secondAppliedBrightness = brightness; }
   else if (secondMode == "manual") { secondApplied = secondManual; secondAppliedBrightness = secondBrightness; }
   const uint8_t channels[] = {secondApplied.r, secondApplied.g, secondApplied.b};
   for (uint8_t i = 0; i < 3; ++i) {
-    const uint8_t duty = lroundf(powf(channels[i] / 255.0f * secondAppliedBrightness / 100.0f, 2.2f) * 255);
+    const uint8_t duty = LedOutput::duty(channels[i], secondAppliedBrightness, secondGain[i]);
     if (!ledcWrite(SECOND_RGB_PINS[i], duty)) {
       secondPwmOK = false; secondApplied = {0, 0, 0}; secondAppliedBrightness = 0;
       for (uint8_t pin : SECOND_RGB_PINS) {
@@ -104,14 +112,15 @@ void applySecondary() {
 void applyColor() {
   applied = {0, 0, 0};
   if (!pwmOK) { applySecondary(); return; }
-  if (enabled && (!automatic || sensorOK)) {
+  if (lights.active()) applied=lights.frame(millis()).first;
+  else if (enabled && (!automatic || sensorOK)) {
     applied = automatic ? ClimateColor::fromReading(temperature, humidity, range)
                         : ClimateColor::withSaturation(manual, manualSaturation);
   }
   const uint8_t channels[] = {applied.r, applied.g, applied.b};
   for (int i = 0; i < 3; ++i) {
     // Korekcja gamma ułatwia wybór ciemnych odcieni suwakiem.
-    uint8_t duty = lroundf(powf(channels[i] / 255.0f * brightness / 100.0f, 2.2f) * 255);
+    uint8_t duty = LedOutput::duty(channels[i], brightness);
     if (COMMON_ANODE) duty = 255 - duty;
     if (!ledcWrite(RGB_PINS[i], duty)) {
       pwmOK = false;
@@ -125,6 +134,20 @@ void applyColor() {
     }
   }
   applySecondary();
+}
+
+void handleEffects() {
+  const uint32_t now=millis();
+  if(lights.active() && uint32_t(now-lastLightFrame)>=33){lastLightFrame=now;applyColor();}
+  if(WiFi.status()!=WL_CONNECTED){stopDrives();return;}
+  const bool wasActive=motionEffects.active();
+  MotionEffects::Cue cue;
+  if(motionEffects.next(now,motor.running()||servo.active()||servoProbe.active(),cue)){
+    if(motionEffects.servo()){
+      servoProbe.reset();servo.move(cue.value,now,50);servoHasCommand=true;
+    }else motor.start(cue.direction,now,uint16_t(cue.value),100);
+  }
+  if(wasActive&&!motionEffects.active()){stopMotor();releaseServo();}
 }
 
 void sampleSensor() {
@@ -142,7 +165,7 @@ void sampleSensor() {
 
 void sendState() {
   String json;
-  json.reserve(1600);
+  json.reserve(1900);
   json = "{\"device\":\"" DEVICE_HOSTNAME "\",\"mode\":\"";
   json += automatic ? "auto" : "manual";
   json += "\",\"enabled\":"; json += enabled ? "true" : "false";
@@ -154,11 +177,16 @@ void sendState() {
   json += ",\"color\":\"" + hexColor(applied) + "\",\"manualColor\":\"" + hexColor(manual) + "\"";
   json += ",\"brightness\":" + String(brightness);
   json += ",\"manualSaturation\":" + String(manualSaturation);
+  json += ",\"lightEffect\":" + String(int(lights.mode()));
+  json += ",\"motionEffect\":" + String(int(motionEffects.mode()));
   json += ",\"secondMode\":\"" + secondMode + "\"";
   json += ",\"secondColor\":\"" + hexColor(secondApplied) + "\"";
   json += ",\"secondManualColor\":\"" + hexColor(secondManual) + "\"";
   json += ",\"secondBrightness\":" + String(secondAppliedBrightness);
   json += ",\"secondManualBrightness\":" + String(secondBrightness);
+  json += ",\"secondGainR\":" + String(secondGain[0]);
+  json += ",\"secondGainG\":" + String(secondGain[1]);
+  json += ",\"secondGainB\":" + String(secondGain[2]);
   json += ",\"secondPwmOK\":"; json += secondPwmOK ? "true" : "false";
   json += ",\"servoActive\":"; json += (servo.active() || servoProbe.active()) ? "true" : "false";
   json += ",\"servoProbeActive\":"; json += servoProbe.active() ? "true" : "false";
@@ -190,10 +218,40 @@ bool numberArg(const char *name, float low, float high, float &out) {
   return end != value.c_str() && *end == '\0' && isfinite(out) && out >= low && out <= high;
 }
 void badRequest() { server.send(400, "text/plain; charset=utf-8", "Nieprawidłowe ustawienia."); }
+void controlLightEffect(){
+  float mode,level=brightness;
+  if(server.args()!=1+int(server.hasArg("brightness"))||!numberArg("effect",0,5,mode)||floorf(mode)!=mode||
+     (server.hasArg("brightness")&&(!numberArg("brightness",0,100,level)||floorf(level)!=level))){badRequest();return;}
+  brightness=uint8_t(level);
+  lights.start(LightEffects::Mode(int(mode)),millis());applyColor();sendState();
+}
+void controlMotionEffect(){
+  const String device=server.arg("device"),effect=server.arg("effect");
+  if(server.args()!=2||(device!="motor"&&device!="servo")){badRequest();return;}
+  if(effect=="stop"){
+    if(motionEffects.active()&&motionEffects.servo()==(device=="servo"))motionEffects.stop();
+    if(device=="servo")releaseServo();else stopMotor();sendState();return;
+  }
+  MotionEffects::Mode mode=MotionEffects::None;
+  if(device=="motor"){
+    if(effect=="swing")mode=MotionEffects::Swing;
+    if(effect=="dance")mode=MotionEffects::Dance;
+    if(effect=="tour")mode=MotionEffects::Tour;
+  }else{
+    if(effect=="wave")mode=MotionEffects::Wave;
+    if(effect=="nod")mode=MotionEffects::Nod;
+    if(effect=="scan")mode=MotionEffects::Scan;
+  }
+  if(mode==MotionEffects::None){badRequest();return;}
+  if(motionEffects.active()||motor.running()||servo.active()||servoProbe.active()){
+    server.send(409,"text/plain; charset=utf-8","Najpierw zatrzymaj aktywny napęd.");return;
+  }
+  motionEffects.start(mode,millis());handleEffects();sendState();
+}
 void controlSecondary() {
   const String mode = server.arg("mode");
   if ((mode == "sync" || mode == "off") && server.args() == 1) {
-    secondMode = mode; applySecondary(); sendState(); return;
+    lights.start(LightEffects::Off,millis()); secondMode = mode; applyColor(); sendState(); return;
   }
   float level;
   String color = server.arg("color");
@@ -203,6 +261,15 @@ void controlSecondary() {
   const unsigned long value = strtoul(color.c_str()+1,nullptr,16);
   secondManual = {uint8_t(value >> 16),uint8_t(value >> 8),uint8_t(value)};
   secondBrightness = uint8_t(level); secondMode = mode;
+  lights.start(LightEffects::Off,millis()); applyColor(); sendState();
+}
+void configureSecondBalance() {
+  float r,g,b;
+  if (server.args()!=3 || !numberArg("r",0,100,r) || !numberArg("g",0,100,g) ||
+      !numberArg("b",0,100,b) || floorf(r)!=r || floorf(g)!=g || floorf(b)!=b) {
+    badRequest(); return;
+  }
+  secondGain[0]=uint8_t(r); secondGain[1]=uint8_t(g); secondGain[2]=uint8_t(b);
   applySecondary(); sendState();
 }
 void controlMotor() {
@@ -219,8 +286,8 @@ void controlMotor() {
        (action != "stop" && action != "test" && action != "zero" && action != "home")))) {
     badRequest(); return;
   }
-  if (action == "stop") stopMotor();
-  else if (motor.running() || servo.active() || servoProbe.active()) {
+  if (action == "stop") { if(motionEffects.active()&&!motionEffects.servo())motionEffects.stop();stopMotor(); }
+  else if (motionEffects.active() || motor.running() || servo.active() || servoProbe.active()) {
     server.send(409, "text/plain; charset=utf-8", "Poczekaj na zakończenie pracy aktywnego napędu lub wyłącz jego sygnał."); return;
   } else if (action == "test") motor.startDiagnostic(millis());
   else if (action == "zero") motor.setZero();
@@ -233,7 +300,8 @@ void controlMotor() {
 }
 void controlServo() {
   const String action = server.arg("action");
-  if (action == "release" && server.args() == 1) { releaseServo(); sendState(); return; }
+  if (action == "release" && server.args() == 1) { if(motionEffects.active()&&motionEffects.servo())motionEffects.stop(); releaseServo(); sendState(); return; }
+  if(motionEffects.active()){server.send(409,"text/plain; charset=utf-8","Najpierw zatrzymaj efekt ruchu.");return;}
   if (action == "pulse") {
     float pulse;
     if (server.args() != 2 || !numberArg("us",500,2500,pulse) || floorf(pulse)!=pulse) {
@@ -275,7 +343,7 @@ void controlServo() {
 }
 void control() {
   String mode = server.arg("mode");
-  if (mode == "off" && server.args() == 1) { enabled = false; applyColor(); sendState(); return; }
+  if (mode == "off" && server.args() == 1) { lights.start(LightEffects::Off,millis()); enabled = false; applyColor(); sendState(); return; }
   float level;
   if (!numberArg("brightness", 0, 100, level) || floorf(level) != level) { badRequest(); return; }
   ClimateColor::RGB next = manual;
@@ -291,6 +359,7 @@ void control() {
     unsigned long value = strtoul(color.c_str() + 1, nullptr, 16);
     next = {uint8_t(value >> 16), uint8_t(value >> 8), uint8_t(value)};
   } else if (mode != "auto" || server.args() != 2) { badRequest(); return; }
+  lights.start(LightEffects::Off,millis());
   manual = next; manualSaturation = uint8_t(saturation);
   brightness = uint8_t(level); automatic = mode == "auto"; enabled = true;
   applyColor(); sendState();
@@ -347,6 +416,9 @@ void setup() {
   server.on("/api/motor", HTTP_POST, controlMotor);
   server.on("/api/servo", HTTP_POST, controlServo);
   server.on("/api/second", HTTP_POST, controlSecondary);
+  server.on("/api/second-balance", HTTP_POST, configureSecondBalance);
+  server.on("/api/light-effect", HTTP_POST, controlLightEffect);
+  server.on("/api/motion-effect", HTTP_POST, controlMotionEffect);
   server.begin();
 }
 void loop() {
@@ -354,6 +426,7 @@ void loop() {
   server.handleClient();
   handleMotor();
   handleServo();
+  handleEffects();
   sampleSensor();
   handleMotor();
   delay(1);

@@ -3,8 +3,8 @@
 Status: użytkownik rozpoznał kanały próbą świecenia z 3,3 V przez 1 kΩ.
 Pierwsze próby przy nieprawidłowym umieszczeniu diody nie dawały światła;
 po poprawieniu montażu potwierdzono poniższy pinout. Model/producent nieznany.
-Kod i plan docelowy przygotowane; upload i sterowanie trzema kanałami
-jednocześnie jeszcze niepotwierdzone.
+Po docelowym montażu i przekazaniu instrukcji uploadu użytkownik potwierdził
+działanie. Nie wykonano niezależnego testu HTTP/OTA ani pomiaru prądów.
 
 ## Rozpoznanie i plan sygnałów
 
@@ -67,3 +67,41 @@ Weryfikacja przygotowania: testy UI z symulowanym API (sync, niezależny kolor,
 wyłączenie, brak zmiany pierwszej lampki i błąd sieci) oraz istniejące testy
 kolorów: OK. Build esp32-1 i esp32-2: SUCCESS, około 87,6% slotu aplikacji.
 Upload i test fizycznej synchronizacji/kolorów po nowym montażu niewykonane.
+
+Aktualizacja 2026-11-15: użytkownik potwierdził działanie po docelowym
+podłączeniu i instrukcji uploadu. Wcześniejsze wzmianki o niewykonanym
+teście opisują etap przygotowania; nie zgłoszono osobno każdego scenariusza UI.
+
+## Uporządkowany panel i dopasowanie barw (2026-11-15)
+
+Użytkownik zgłosił inną fizyczną barwę RGB 2 podczas auto RGB 1. Odczyt API
+z agenta niedostępny (URLError), więc nie potwierdzono stanu na urządzeniu.
+Kod sync kopiuje wynikowy RGB i jasność pierwszej diody także w auto.
+Obie diody korzystają ze wspólnego LedOutput::duty (gamma 2,2); przy korekcji
+100/100/100 wartości PWM tych samych kanałów są identyczne. Różnica barwy może
+wynikać z charakterystyk diod/rezystorów albo montażu — przyczyna fizyczna
+nieustalona. Przed korekcją sprawdzić czyste R/G/B: jeśli kolor jest zamieniony
+lub wszystkie świecą przy zadaniu jednej barwy, sprawdzić połączenia.
+
+Dodano rozwijane Dopasuj barwy RGB 2: R/G/B 0–100%, domyślnie 100% każdy.
+Skaluje PWM po gamma tylko drugiej diody, zarówno sync, jak i manual.
+Nie zwiększa prądu ponad bazowy PWM. Ustawienia sesyjne, reset po restarcie.
+Przycisk Przywróć 100% usuwa korekcję. API POST /api/second-balance:
+r=100&g=100&b=100. Walidacja trzech całkowitych 0–100 przed zmianą stanu.
+GET stanu dodaje secondGainR/G/B. Podgląd HEX opisuje zadanie przed korekcją.
+
+Domyślna jasność obu diod zmieniona z 60 na 100%, domyślny ręczny kolor RGB 2
+jak RGB 1 (#0064ff). RGB 2 startuje w sync; obie pozostają wygaszone do
+polecenia włączenia pierwszej lub ustawienia niezależnego koloru.
+Układ strony: temperatura/wilgotność, grupa Diody RGB z osobną kartą dla każdej,
+grupa Silniki z osobną kartą dla krokowca i serwa. Ręczne/auto ustawienia
+pierwszej lampki zebrane w jej karcie. Desktop dwie kolumny, mobile jedna.
+
+Weryfikacja: testy UI z symulowanym API i domyślnych 100%, korekcji i resetu OK;
+test wspólnej konwersji PWM i ograniczania kanałów OK. Przegląd w przeglądarce
+1280 px i 390 px: prawidłowa kolejność sekcji, brak poziomego przepełnienia
+oraz błędów JavaScript. Oba środowiska firmware zbudowane poprawnie (87,9%
+slotu aplikacji). Nie wgrano tej wersji; fizyczne barwy nie zostały skalibrowane.
+
+Dodano jednorazowe efekty ruchu oraz efekty obu diod: [EFFECTS.md](EFFECTS.md).
+Nowa wersja przygotowana, upload i test efektów na sprzęcie jeszcze niewykonane.
