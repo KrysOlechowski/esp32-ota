@@ -28,7 +28,7 @@ const context = vm.createContext({URLSearchParams,document:{getElementById:id=>e
       calls.push({path,data});
       if(fail)throw Error('offline');
       if(path==='/api/light-effect')state={...state,lightEffect:Number(data.effect)};
-      if(path==='/api/motion-effect')state={...state,motionEffect:data.effect==='stop'?0:data.device==='motor'?1:4};
+      if(path==='/api/motion-effect')state={...state,motionEffect:data.effect==='stop'?0:data.device==='motor'?1:4,motionLoop:data.loop==='1'};
       if(path==='/api/second-balance')state={...state,secondGainR:Number(data.r),secondGainG:Number(data.g),secondGainB:Number(data.b)};
       if(path==='/api/second')state={...state,secondMode:data.mode,secondColor:data.mode==='manual'?data.color:'#000000',secondBrightness:Number(data.brightness??0)};
       if(path==='/api/servo')state={...state,servoActive:['move','home'].includes(data.action),servoHasCommand:true,servoZeroKnown:state.servoZeroKnown||data.action==='zero',servoZero:data.action==='zero'?state.servoTarget:state.servoZero,servoTarget:Number(data.angle??state.servoTarget)};
@@ -80,7 +80,7 @@ const context = vm.createContext({URLSearchParams,document:{getElementById:id=>e
   assert.equal(elements.get('motorLeft').disabled,false);
   await elements.get('servoZero').onclick();
   assert.deepEqual(calls.at(-1).data,{action:'zero'});
-  assert.match(elements.get('servoPosition').textContent,/Zapisane zero: 90/);
+  assert.match(elements.get('servoPosition').textContent,/Zapisane zero .*90/);
   await elements.get('servoHome').onclick();
   assert.deepEqual(calls.at(-1).data,{action:'home',speed:'50'});
   await elements.get('servoRelease').onclick();
@@ -122,5 +122,14 @@ const context = vm.createContext({URLSearchParams,document:{getElementById:id=>e
   await elements.get('servoAnimStart').onclick();assert.deepEqual(calls.at(-1).data,{device:'servo',effect:'wave'});
   assert.equal(elements.get('motorAnimStart').disabled,true);
   await elements.get('servoAnimStop').onclick();assert.equal(state.motionEffect,0);
+  await elements.get('motorAnimLoop').onclick();
+  assert.deepEqual(calls.at(-1).data,{device:'motor',effect:'swing',loop:'1'});
+  assert.match(elements.get('motorAnimState').textContent,/Pętla aktywna/);
+  assert.equal(elements.get('servoAnimLoop').disabled,true);
+  await elements.get('motorAnimStop').onclick();
+  await elements.get('servoAnimLoop').onclick();
+  assert.deepEqual(calls.at(-1).data,{device:'servo',effect:'wave',loop:'1'});
+  assert.equal(elements.get('motorAnimLoop').disabled,true);
+  await elements.get('servoAnimStop').onclick();
   console.log('UI controls, defaults and effects: PASS');
 })().catch(error=>{console.error(error);process.exitCode=1});

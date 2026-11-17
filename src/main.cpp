@@ -178,6 +178,7 @@ void sendState() {
   json += ",\"brightness\":" + String(brightness);
   json += ",\"manualSaturation\":" + String(manualSaturation);
   json += ",\"lightEffect\":" + String(int(lights.mode()));
+  json += ",\"motionLoop\":"; json += motionEffects.looping()?"true":"false";
   json += ",\"motionEffect\":" + String(int(motionEffects.mode()));
   json += ",\"secondMode\":\"" + secondMode + "\"";
   json += ",\"secondColor\":\"" + hexColor(secondApplied) + "\"";
@@ -227,7 +228,9 @@ void controlLightEffect(){
 }
 void controlMotionEffect(){
   const String device=server.arg("device"),effect=server.arg("effect");
-  if(server.args()!=2||(device!="motor"&&device!="servo")){badRequest();return;}
+  const bool hasLoop=server.hasArg("loop");
+  if(server.args()!=2+int(hasLoop)||(device!="motor"&&device!="servo")||
+     (hasLoop&&(server.arg("loop")!="0"&&server.arg("loop")!="1"))||(effect=="stop"&&hasLoop)){badRequest();return;}
   if(effect=="stop"){
     if(motionEffects.active()&&motionEffects.servo()==(device=="servo"))motionEffects.stop();
     if(device=="servo")releaseServo();else stopMotor();sendState();return;
@@ -246,7 +249,7 @@ void controlMotionEffect(){
   if(motionEffects.active()||motor.running()||servo.active()||servoProbe.active()){
     server.send(409,"text/plain; charset=utf-8","Najpierw zatrzymaj aktywny napęd.");return;
   }
-  motionEffects.start(mode,millis());handleEffects();sendState();
+  motionEffects.start(mode,millis(),hasLoop&&server.arg("loop")=="1");handleEffects();sendState();
 }
 void controlSecondary() {
   const String mode = server.arg("mode");

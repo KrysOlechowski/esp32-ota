@@ -32,6 +32,17 @@ int main(){
     if(mode<=3){assert(total==(mode==3?4096:0));assert(motor.position()==0);}
     else assert(servo.angle()==90);
   }
+  for(int mode=1;mode<=6;++mode){
+    MotionEffects loop;StepperMotion motor;ServoMotion servo;int count=0;
+    loop.start(MotionEffects::Mode(mode),0,true);assert(loop.looping());
+    for(uint32_t t=0;t<=120000;++t){
+      motor.tick(t);servo.tick(t);MotionEffects::Cue c;
+      if(loop.next(t,motor.running()||servo.active(),c)){
+        ++count;if(loop.servo())servo.move(c.value,t);else motor.start(c.direction,t,c.value);
+      }
+    }
+    const int one[]={0,3,6,4,5,5,10};assert(count>one[mode]);assert(!loop.active()&&!loop.looping());
+  }
   MotionEffects fx;MotionEffects::Cue cue;
   fx.start(MotionEffects::Swing,0);assert(!fx.next(120000,true,cue));assert(!fx.active());
   fx.start(MotionEffects::Wave,UINT32_MAX-10);assert(fx.next(UINT32_MAX-10,false,cue));

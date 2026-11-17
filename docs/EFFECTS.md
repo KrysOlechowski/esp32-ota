@@ -35,14 +35,16 @@ Krokowiec, stałe 100 półkroków/s:
 - Taniec: +128, −128, +256, −256, +128, −128.
 - Karuzela: cztery etapy po 1024 półkroki w jedną stronę, nominalnie obrót.
 
-Serwo, stałe nominalne 50° zadania/s w już używanym zakresie:
-- Machanie: 60, 120, 60, 120, 90°.
-- Kiwanie: 80, 100, 80, 100, 90°.
-- Skanowanie: 60, 75, 90, 105, 120, 105, 90, 75, 60, 90°.
+Serwo, stałe 50 jednostek umownej skali/s w już używanym zakresie:
+- Machanie: 60, 120, 60, 120, 90.
+- Kiwanie: 80, 100, 80, 100, 90.
+- Skanowanie: 60, 75, 90, 105, 120, 105, 90, 75, 60, 90.
 
-Każda sekwencja wykonuje się raz. Kolejny etap zaczyna się po zakończeniu
+Przycisk Uruchom raz wykonuje pojedynczą sekwencję. Zapętl powtarza ją do Stop
+lub osiągnięcia dotychczasowego limitu całej sesji 2 minut. Limit nie jest
+zerowany po cyklu. Ponowne uruchomienie wymaga jawnego polecenia. Kolejny etap zaczyna się po zakończeniu
 poprzedniego i 600 ms pauzy; serwo najpierw samo wyłącza sygnał jak w zwykłym
-sterowaniu. Brak automatycznego powtarzania. Limit całej sekwencji 120 s,
+sterowaniu. Zapętlanie jest opcjonalne, tylko po jawnym poleceniu przyciskiem Zapętl. Limit całej sekwencji 120 s,
 sprawdzany w pętli. Nie zastępuje zabezpieczenia sprzętowego na zawieszenie.
 
 Przez całą sekwencję (także pauzy) drugi napęd i zwykłe polecenia ruchu są
@@ -50,13 +52,16 @@ blokowane (409). Zatrzymaj efekt i dotychczasowe Stop/Zwolnij serwo kończą
 sekwencję danego napędu i wyłączają jego sygnał. Utrata Wi-Fi oraz początek
 OTA zatrzymują oba napędy i kasują sekwencję. Nie odłączają zasilania fizycznie.
 Nie zmieniają zapisanego zera serwa ani nie ustawiają automatycznie zera
-krokowca. Kąty są nominalne, bez pomiaru osi. Pierwszy test bez obciążenia,
+krokowca. Pozycje serwa są umowne, bez kalibracji i pomiaru osi. Kąty krokowca nominalne. Pierwszy test bez obciążenia,
 z wolnym miejscem na ruch. Po przerwaniu nie obiecujemy powrotu do początku.
 
 POST /api/motion-effect: device=motor|servo oraz effect=swing|dance|tour dla
 krokowca lub wave|nod|scan dla serwa; effect=stop zatrzymuje wskazany napęd.
 GET /api/state: motionEffect = 0 brak, 1 swing, 2 dance, 3 tour, 4 wave, 5 nod,
 6 scan. Sekwencja wymaga jawnego polecenia start i nie jest zapisywana w NVS.
+Opcjonalny parametr loop=0|1 wybiera pojedynczy cykl lub pętlę (domyślnie 0);
+parametr nie jest dozwolony w stop. Inne wartości są odrzucane przed zmianą.
+Stan dodaje motionLoop. Stop, rozłączenie Wi-Fi i OTA nadal kasują sekwencję.
 
 ## Układ i weryfikacja
 
@@ -74,3 +79,7 @@ brak poziomego przepełnienia i błędów JavaScript. Testy sprzętowe niewykona
 Build końcowy esp32-1 i esp32-2: SUCCESS, 89,1% slotu aplikacji. Test host
 nowych efektów przechodzi również z -Wall -Wextra -Werror. Upload i test
 rzeczywistych diod/napędów tej wersji niewykonane.
+
+Test rozszerzenia pętli obejmuje wszystkie 6 efektów: więcej niż jeden cykl,
+koniec po 120 s oraz przyciski Loop/Stop obu napędów i blokady w UI.
+Nowa wersja wymaga uploadu i testu na urządzeniu.

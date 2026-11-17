@@ -148,3 +148,15 @@ test UI sprawdza polecenia środka oraz −25 µs.
 
 Dodano jednorazowe efekty ruchu oraz efekty obu diod: [EFFECTS.md](EFFECTS.md).
 Nowa wersja przygotowana, upload i test efektów na sprzęcie jeszcze niewykonane.
+
+## Korekta opisu skali (2026-11-15)
+
+Użytkownik zgłosił, że obrót nie odpowiada stopniom na suwaku. Bez kalibracji
+1000–2000 µs nie można uznać za 0–180° mechanicznych. Zakres suwaka 45–135
+mapuje 1250–1750 µs, ale to skala umowna. UI zmieniono z kątów w stopniach
+na pozycję umowną, także dla zera, ±10 i nazw efektów. Prędkości oznaczają
+zmianę zadania, nie zmierzoną szybkość. API zachowuje dotychczasowe nazwy
+angle/servoAngle/servoTarget dla zgodności, bez zmiany impulsów, zera NVS
+ani fizycznego zakresu. Do rzeczywistych kątów potrzebny pomiar ruchu osi
+przy przynajmniej dwóch impulsach testowych; nie dobrano niezmierzonych końców.
+Dodano opcjonalne pętle efektów serwa: EFFECTS.md. Nowa wersja niewgrana.
