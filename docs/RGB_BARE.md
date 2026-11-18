@@ -105,3 +105,46 @@ slotu aplikacji). Nie wgrano tej wersji; fizyczne barwy nie zostały skalibrowan
 
 Dodano jednorazowe efekty ruchu oraz efekty obu diod: [EFFECTS.md](EFFECTS.md).
 Nowa wersja przygotowana, upload i test efektów na sprzęcie jeszcze niewykonane.
+
+## Niebieski zamiast różu/fioletu — diagnostyka 2026-11-17
+
+Użytkownik zgłosił, że RGB 2 pokazuje niebieski tam, gdzie RGB 1 daje róż/fiolet.
+Przegląd kodu: kolejność R/G/B odpowiada potwierdzonemu pinoutowi, ten sam
+LedOutput::duty liczy PWM obu diod. Kanały RGB 2 to 3/4/5, serwo używa 6.
+Kod zainstalowanej biblioteki LEDC dobiera timer o pasującej częstotliwości
+lub wolny timer; nie znaleziono programowego konfliktu częstotliwości.
+Odczyt istniejącego firmware przez HTTP potwierdził pwmOK i secondPwmOK=true
+oraz secondGainR/G/B=100/100/100. Odczyt wykonano podczas efektu Ogień,
+nie podczas testu magenty. Te pola nie potwierdzają przepływu prądu przez LED.
+Nie ustalono fizycznej przyczyny różnicy barwy i nie zmieniono domyślnej kalibracji.
+
+Nowy panel „Sprawdź kolory obu diod” w karcie RGB 2 pozwala porównać:
+
+| Przycisk | Kolor | Cel |
+|---|---|---|
+| Czerwony | #ff0000 | Sprawdzenie czerwonego toru |
+| Zielony | #00ff00 | Sprawdzenie zielonego toru |
+| Niebieski | #0000ff | Sprawdzenie niebieskiego toru |
+| Magenta · R+B | #ff00ff | Jednoczesne pełne R i B, G wyłączony |
+| Róż · więcej czerwieni | #ff0064 | Pełne R i osłabiony B |
+
+Każdy przycisk kończy efekt, włącza RGB 1 w trybie ręcznym przy jasności
+100% i nasyceniu 100%, ustawia RGB 2 w sync oraz usuwa jej korekcję
+(przywraca 100/100/100). To trwała zmiana stanu bieżącej sesji do kolejnego
+polecenia, nie chwilowy podgląd z automatycznym powrotem. Własny kolor
+i jasność RGB 2 pozostają zapamiętane. Silniki nie dostają poleceń.
+
+POST /api/light-test: color=0..4 według kolejności tabeli; błędne lub dodatkowe
+parametry dają 400 przed zmianą stanu. GET /api/state dodaje firstDuty
+oraz secondDuty: tablice R/G/B wartości 0–255 po jasności/gamma i korekcji,
+zaakceptowanych przez ledcWrite. Po wykrytym błędzie wyjścia są gaszone,
+a odpowiednia tablica zerowana. To stan programu, nie pomiar elektryczny.
+W teście magenty obie tablice powinny wynosić [255,0,255]. Gamma nie osłabia
+pełnej czerwieni w tej próbie; dla pośrednich wartości kanałów jest wspólna.
+
+Jeśli czysta czerwień nie świeci lub daje inną barwę, potrzebne jest sprawdzenie
+czerwonego toru (połączenia, rezystor, dioda, GPIO), bez zgadywania usterki.
+Jeśli czyste R/G/B są poprawne, a magenta ma nadmiar niebieskiego, można
+zmniejszać secondGainB przy secondGainR=100 i obserwować wynik. Bez obserwacji
+nie dobieramy arbitralnej korekcji. Testy kodu/UI i oba buildy: OK; upload
+nowej wersji i optyczna weryfikacja barw niewykonane.

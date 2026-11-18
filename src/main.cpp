@@ -47,6 +47,7 @@ ClimateColor::RGB secondManual = {0, 100, 255}, secondApplied = {0, 0, 0};
 uint8_t secondBrightness = 100, secondAppliedBrightness = 0;
 bool secondPwmOK = false;
 uint8_t secondGain[] = {100, 100, 100};
+uint8_t firstDuty[] = {0, 0, 0}, secondDuty[] = {0, 0, 0};
 float temperature = NAN, humidity = NAN;
 uint32_t lastAttempt = 0, lastSuccess = 0;
 bool hasReading = false;
@@ -92,6 +93,7 @@ String hexColor(ClimateColor::RGB c) {
 
 void applySecondary() {
   secondApplied = {0, 0, 0}; secondAppliedBrightness = 0;
+  for (uint8_t &duty : secondDuty) duty = 0;
   if (!secondPwmOK) return;
   if (lights.active()) { secondApplied=lights.frame(millis()).second; secondAppliedBrightness=brightness; }
   else if (secondMode == "sync") { secondApplied = applied; secondAppliedBrightness = brightness; }
@@ -101,16 +103,19 @@ void applySecondary() {
     const uint8_t duty = LedOutput::duty(channels[i], secondAppliedBrightness, secondGain[i]);
     if (!ledcWrite(SECOND_RGB_PINS[i], duty)) {
       secondPwmOK = false; secondApplied = {0, 0, 0}; secondAppliedBrightness = 0;
+      for (uint8_t &value : secondDuty) value = 0;
       for (uint8_t pin : SECOND_RGB_PINS) {
         ledcDetach(pin); digitalWrite(pin, LOW); pinMode(pin, OUTPUT);
       }
       break;
     }
+    secondDuty[i] = duty;
   }
 }
 
 void applyColor() {
   applied = {0, 0, 0};
+  for (uint8_t &duty : firstDuty) duty = 0;
   if (!pwmOK) { applySecondary(); return; }
   if (lights.active()) applied=lights.frame(millis()).first;
   else if (enabled && (!automatic || sensorOK)) {
@@ -125,6 +130,7 @@ void applyColor() {
     if (!ledcWrite(RGB_PINS[i], duty)) {
       pwmOK = false;
       applied = {0, 0, 0};
+      for (uint8_t &value : firstDuty) value = 0;
       for (uint8_t pin : RGB_PINS) {
         ledcDetach(pin);
         digitalWrite(pin, COMMON_ANODE ? HIGH : LOW);
@@ -132,6 +138,7 @@ void applyColor() {
       }
       break;
     }
+    firstDuty[i] = duty;
   }
   applySecondary();
 }
@@ -188,6 +195,8 @@ void sendState() {
   json += ",\"secondGainR\":" + String(secondGain[0]);
   json += ",\"secondGainG\":" + String(secondGain[1]);
   json += ",\"secondGainB\":" + String(secondGain[2]);
+  json += ",\"firstDuty\":[" + String(firstDuty[0]) + "," + String(firstDuty[1]) + "," + String(firstDuty[2]) + "]";
+  json += ",\"secondDuty\":[" + String(secondDuty[0]) + "," + String(secondDuty[1]) + "," + String(secondDuty[2]) + "]";
   json += ",\"secondPwmOK\":"; json += secondPwmOK ? "true" : "false";
   json += ",\"servoActive\":"; json += (servo.active() || servoProbe.active()) ? "true" : "false";
   json += ",\"servoProbeActive\":"; json += servoProbe.active() ? "true" : "false";
@@ -221,10 +230,20 @@ bool numberArg(const char *name, float low, float high, float &out) {
 void badRequest() { server.send(400, "text/plain; charset=utf-8", "Nieprawidłowe ustawienia."); }
 void controlLightEffect(){
   float mode,level=brightness;
-  if(server.args()!=1+int(server.hasArg("brightness"))||!numberArg("effect",0,5,mode)||floorf(mode)!=mode||
+  if(server.args()!=1+int(server.hasArg("brightness"))||!numberArg("effect",0,LightEffects::PingPong,mode)||floorf(mode)!=mode||
      (server.hasArg("brightness")&&(!numberArg("brightness",0,100,level)||floorf(level)!=level))){badRequest();return;}
   brightness=uint8_t(level);
   lights.start(LightEffects::Mode(int(mode)),millis());applyColor();sendState();
+}
+void testLightColor() {
+  float index;
+  if (server.args()!=1 || !numberArg("color",0,4,index) || floorf(index)!=index) { badRequest(); return; }
+  const ClimateColor::RGB colors[] = {{255,0,0},{0,255,0},{0,0,255},{255,0,255},{255,0,100}};
+  lights.start(LightEffects::Off,millis());
+  manual=colors[int(index)]; manualSaturation=100; brightness=100; automatic=false; enabled=true;
+  secondMode="sync";
+  for (uint8_t &gain : secondGain) gain=100;
+  applyColor(); sendState();
 }
 void controlMotionEffect(){
   const String device=server.arg("device"),effect=server.arg("effect");
@@ -421,6 +440,7 @@ void setup() {
   server.on("/api/second", HTTP_POST, controlSecondary);
   server.on("/api/second-balance", HTTP_POST, configureSecondBalance);
   server.on("/api/light-effect", HTTP_POST, controlLightEffect);
+  server.on("/api/light-test", HTTP_POST, testLightColor);
   server.on("/api/motion-effect", HTTP_POST, controlMotionEffect);
   server.begin();
 }

@@ -7,6 +7,13 @@ Rozmawiaj z użytkownikiem po polsku. README na GitHub utrzymuj po angielsku.
 Dokumentację pracy, sprzętu i instrukcje dla agentów pisz po polsku.
 Wystarczy ten plik i docs/AI_WORKFLOW.md: osobny skill nie jest obecnie wymagany.
 
+## Komendy dla użytkownika
+
+Podawaj komendy działające z dowolnego folderu terminala. Dla PlatformIO używaj
+pełnej ścieżki do launchera i opcji `-d` z pełną, ujętą w cudzysłowy ścieżką
+właściwego projektu. Nie zakładaj bieżącego katalogu ani obecności `pio` w PATH.
+Konkretne prywatne ścieżki podawaj w rozmowie, nie zapisuj ich w plikach publicznych.
+
 ## Przed pracą
 
 1. Przeczytaj platformio.ini, zmieniane źródła oraz odpowiednią dokumentację docs/.

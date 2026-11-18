@@ -17,6 +17,35 @@ int main(){
   }
   l.start(LightEffects::Breathe,0);assert(l.frame(2000).first.b==255);assert(l.frame(0).first.b<30);
   l.start(LightEffects::Candle,UINT32_MAX-20);auto wrap=l.frame(79);l.start(LightEffects::Candle,0);assert(l.frame(100).first.r==wrap.first.r);
+  const uint32_t periods[]={14000,6000,24000,2000,4000};
+  for(int mode=LightEffects::Aurora;mode<=LightEffects::PingPong;++mode){
+    l.start(LightEffects::Mode(mode),0);
+    const auto start=l.frame(0);
+    bool changed=false,distinct=false;
+    for(uint32_t t=0;t<periods[mode-LightEffects::Aurora];t+=37){
+      const auto f=l.frame(t),repeat=l.frame(t+periods[mode-LightEffects::Aurora]);
+      assert(f.first.r==repeat.first.r&&f.first.g==repeat.first.g&&f.first.b==repeat.first.b);
+      assert(f.second.r==repeat.second.r&&f.second.g==repeat.second.g&&f.second.b==repeat.second.b);
+      changed|=f.first.r!=start.first.r||f.first.g!=start.first.g||f.first.b!=start.first.b;
+      distinct|=f.first.r!=f.second.r||f.first.g!=f.second.g||f.first.b!=f.second.b;
+      if(mode==LightEffects::Ocean)assert(f.first.r==0&&f.second.r==0);
+      if(mode==LightEffects::Sunset)assert(f.first.r==f.second.r&&f.first.g==f.second.g&&f.first.b==f.second.b);
+    }
+    assert(changed);assert(distinct==(mode!=LightEffects::Sunset));
+    l.start(LightEffects::Mode(mode),UINT32_MAX-50);
+    const auto wrapped=l.frame(72);
+    l.start(LightEffects::Mode(mode),0);const auto normal=l.frame(123);
+    assert(wrapped.first.r==normal.first.r&&wrapped.first.g==normal.first.g&&wrapped.first.b==normal.first.b);
+    assert(wrapped.second.r==normal.second.r&&wrapped.second.g==normal.second.g&&wrapped.second.b==normal.second.b);
+  }
+  l.start(LightEffects::Heartbeat,0);
+  assert(l.frame(120).first.r==255&&l.frame(120).second.r==0);
+  assert(l.frame(480).first.r>170&&l.frame(700).first.r==0);
+  assert(l.frame(1120).second.r==255&&l.frame(1120).first.r==0);
+  l.start(LightEffects::PingPong,0);
+  assert(l.frame(0).first.r==0&&l.frame(0).second.r==255);
+  assert(l.frame(2000).first.r==255&&l.frame(2000).second.r==0);
+  l.start(LightEffects::Off,999);assert(!l.active()&&l.frame(1000).second.r==0);
   for(int mode=1;mode<=6;++mode){
     MotionEffects fx;StepperMotion motor;ServoMotion servo;int total=0,count=0;
     assert(fx.start(MotionEffects::Mode(mode),0));assert(!fx.start(MotionEffects::Swing,0));

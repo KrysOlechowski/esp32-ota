@@ -12,6 +12,11 @@ Na samej górze strony karta Efekty świetlne:
 - Oddychanie: spokojne rozjaśnianie/ściemnianie niebieskiego (cykl 4 s).
 - Tęcza: płynny obieg barw na obu RGB (cykl 12 s).
 - Duet: płynne, dopełniające barwy obu RGB.
+- Zorza: zieleń przechodzi w fiolet, na drugiej diodzie odwrotna faza (14 s).
+- Ocean: fale błękitu i turkusu przesunięte między diodami o pół cyklu (6 s).
+- Zachód słońca: bursztyn → róż → fiolet → powrót, na obu diodach (24 s).
+- Bicie serca: dwa czerwone pulsy i pauza, druga dioda opóźniona o 1 s (2 s).
+- Ping-pong: różowe światło płynnie przechodzi między diodami (4 s).
 
 Obliczenia z czasu, bez delay i pętli oczekujących. Aktualizacja około 30 Hz.
 Efekt nadpisuje oba wyjścia także gdy ich zapisany tryb jest wyłączony lub
@@ -23,9 +28,9 @@ efekt. Zmiana samych zakresów DHT lub korekcji RGB 2 nie kończy efektu.
 Błąd DHT w auto nie gasi aktywnego efektu; po jego wyłączeniu znów obowiązuje
 normalne wygaszanie auto przy błędzie sensora.
 
-POST /api/light-effect: effect=0..5 (off/candle/fire/breathe/rainbow/duet),
+POST /api/light-effect: effect=0..10 (off/candle/fire/breathe/rainbow/duet/aurora/ocean/sunset/heartbeat/ping-pong),
 opcjonalnie brightness=0..100. Walidacja całości przed zmianą.
-GET /api/state: lightEffect identyfikator 0..5. Pozostałe pola kolorów pokazują
+GET /api/state: lightEffect identyfikator 0..10. Pozostałe pola kolorów pokazują
 aktualny wynik efektu; zapisane tryby i kolory ręczne nie są nadpisywane.
 
 ## Ruch — osobno na górze każdej karty
@@ -83,3 +88,20 @@ rzeczywistych diod/napędów tej wersji niewykonane.
 Test rozszerzenia pętli obejmuje wszystkie 6 efektów: więcej niż jeden cykl,
 koniec po 120 s oraz przyciski Loop/Stop obu napędów i blokady w UI.
 Nowa wersja wymaga uploadu i testu na urządzeniu.
+
+## Rozszerzenie światła i diagnostyka — 2026-11-17
+
+Dodano efekty 6–10 z powyższej listy. Identyfikatory 0–5 zachowane.
+Obliczenia nie blokują obsługi HTTP/OTA; efekty nadal wymagają jawnego startu.
+Panel RGB 2 zawiera „Sprawdź kolory obu diod”: pięć statycznych testów
+opisanych w [RGB_BARE.md](RGB_BARE.md). Nie uruchamiają napędów.
+
+Weryfikacja: sześć testów C++ host z -Wall -Wextra -Werror oraz test JS
+przechodzą. Nowe efekty sprawdzone pod kątem cykliczności, różnic między
+wyjściami, pulsów i przepełnienia millis(). UI z symulowanym API: wybór
+nowych efektów, reset korekcji i synchronizacja kontrolek po teście magenty,
+obsługa błędu sieci. Przegląd przeglądarki 1280/390 px: bez poziomego
+przepełnienia i błędów JavaScript. Build esp32-1 i esp32-2: SUCCESS,
+1175778 B / 1310720 B flash (89,7%), RAM 52504 B (16,0%).
+HTTP istniejącego firmware ESP32-1 potwierdzone; nowej wersji nie wgrano.
+Fizyczne barwy i działanie nowych efektów pozostają do sprawdzenia na urządzeniu.

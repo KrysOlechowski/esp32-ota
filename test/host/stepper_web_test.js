@@ -28,6 +28,12 @@ const context = vm.createContext({URLSearchParams,document:{getElementById:id=>e
       calls.push({path,data});
       if(fail)throw Error('offline');
       if(path==='/api/light-effect')state={...state,lightEffect:Number(data.effect)};
+      if(path==='/api/light-test'){
+        const colors=['#ff0000','#00ff00','#0000ff','#ff00ff','#ff0064'];
+        const color=colors[Number(data.color)],duty=color.match(/[a-f0-9]{2}/gi).map(v=>Math.round((parseInt(v,16)/255)**2.2*255));
+        state={...state,lightEffect:0,enabled:true,mode:'manual',manualColor:color,color,manualSaturation:100,brightness:100,
+          secondMode:'sync',secondColor:color,secondBrightness:100,secondGainR:100,secondGainG:100,secondGainB:100,firstDuty:duty,secondDuty:duty};
+      }
       if(path==='/api/motion-effect')state={...state,motionEffect:data.effect==='stop'?0:data.device==='motor'?1:4,motionLoop:data.loop==='1'};
       if(path==='/api/second-balance')state={...state,secondGainR:Number(data.r),secondGainG:Number(data.g),secondGainB:Number(data.b)};
       if(path==='/api/second')state={...state,secondMode:data.mode,secondColor:data.mode==='manual'?data.color:'#000000',secondBrightness:Number(data.brightness??0)};
@@ -52,6 +58,7 @@ const context = vm.createContext({URLSearchParams,document:{getElementById:id=>e
   vm.runInContext('busy=true',context); // Stop także podczas żądania lampki
   await elements.get('motorStop').onclick();
   assert.deepEqual(calls.at(-1).data,{action:'stop'});
+  vm.runInContext('busy=false',context);
   assert.equal(elements.get('motorLeft').disabled,false);
   assert.match(elements.get('motorState').textContent,/cewki wyłączone/);
   await elements.get('motorTest').onclick();
@@ -113,6 +120,28 @@ const context = vm.createContext({URLSearchParams,document:{getElementById:id=>e
   assert.deepEqual(calls.at(-1).data,{effect:'1',brightness:'100'});
   assert.match(elements.get('effectState').textContent,/Świeczka/);
   await elements.get('effectStop').onclick();assert.equal(state.lightEffect,0);
+  for(const [effect,name] of [[6,'Zorza'],[7,'Ocean'],[8,'Zachód słońca'],[9,'Bicie serca'],[10,'Ping-pong']]){
+    elements.get('lightEffectSelect').value=String(effect);
+    await elements.get('effectStart').onclick();
+    assert.deepEqual(calls.at(-1),{path:'/api/light-effect',data:{effect:String(effect),brightness:'100'}});
+    assert.match(elements.get('effectState').textContent,new RegExp(name));
+  }
+  // Test usuwa aktywny efekt i korekcję tłumiącą czerwień, synchronizuje kontrolki.
+  state={...state,secondGainR:0,brightness:20,manualSaturation:10};
+  await elements.get('secondTestMagenta').onclick();
+  assert.deepEqual(calls.at(-1),{path:'/api/light-test',data:{color:'3'}});
+  assert.equal(state.lightEffect,0);assert.equal(state.secondMode,'sync');
+  assert.equal(elements.get('color').value,'#ff00ff');
+  assert.equal(elements.get('saturation').value,100);assert.equal(elements.get('brightness').value,100);
+  assert.equal(elements.get('secondGainR').value,100);
+  assert.match(elements.get('secondDutyState').textContent,/RGB 1: 255 \/ 0 \/ 255 · RGB 2: 255 \/ 0 \/ 255/);
+  for(const [name,color] of [['Red','0'],['Green','1'],['Blue','2'],['Pink','4']]){
+    await elements.get('secondTest'+name).onclick();assert.deepEqual(calls.at(-1).data,{color});
+  }
+  fail=true;await elements.get('secondTestRed').onclick();
+  assert.match(elements.get('secondMessage').textContent,/Nie potwierdzono testu/);
+  assert.equal(elements.get('secondTestRed').disabled,false);fail=false;
+
   await elements.get('motorAnimStart').onclick();
   assert.deepEqual(calls.at(-1).data,{device:'motor',effect:'swing'});
   assert.equal(elements.get('servoMove').disabled,true);
