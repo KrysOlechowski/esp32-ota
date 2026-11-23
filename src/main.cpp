@@ -423,10 +423,14 @@ void setup() {
   if (!secondPwmOK) {
     for (uint8_t pin : SECOND_RGB_PINS) { ledcDetach(pin); digitalWrite(pin,LOW); pinMode(pin,OUTPUT); }
   }
+  lights.start(LightEffects::Sunset, millis());
   applyColor();
   dht.begin(); lastAttempt = millis();
   WiFi.mode(WIFI_STA); WiFi.setHostname(DEVICE_HOSTNAME); WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-  while (WiFi.status() != WL_CONNECTED) delay(100);
+  while (WiFi.status() != WL_CONNECTED) {
+    handleEffects(); // animacja działa także przed połączeniem z Wi-Fi
+    delay(1);
+  }
   OtaService::begin(stopDrives);
   server.on("/", HTTP_GET, []() {
     server.sendHeader("Cache-Control", "no-store");

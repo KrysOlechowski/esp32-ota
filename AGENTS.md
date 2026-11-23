@@ -18,6 +18,8 @@ Konkretne prywatne ścieżki podawaj w rozmowie, nie zapisuj ich w plikach publi
 
 1. Przeczytaj platformio.ini, zmieniane źródła oraz odpowiednią dokumentację docs/.
 2. Sprawdź git status; zachowaj cudze zmiany. Nie resetuj repo ani firmware urządzeń.
+   Domyślnie pracuj na ostatnio używanej płytce; nie rozszerzaj zadania na obie.
+   Ostatnio używana płytka: ESP32-1 (potwierdzenie użytkownika 2026-11-23).
 3. Dla informacji o stanowisku przeczytaj .local/STANOWISKO.md, jeśli istnieje.
    Jego treści, IP i ścieżek nie przenoś do plików publicznych.
 4. Nie otwieraj sąsiednich projektów: nie są częścią tego repozytorium.
@@ -31,7 +33,7 @@ Konkretne prywatne ścieżki podawaj w rozmowie, nie zapisuj ich w plikach publi
 - Zachowaj partycje obsługujące OTA (obecnie default.csv), hasło i tożsamość urządzenia.
 - Nie usuwaj wspólnego upload_command i wrappera ani nie wstawiaj --auth do konfiguracji.
 - Unikaj blokujących pętli eksperymentu; używaj millis() zamiast długiego delay().
-- Po zmianach buduj oba środowiska; nodemcu-32s jest aliasem esp32-1.
+- Po zmianach buduj środowisko wybranej płytki; nodemcu-32s jest aliasem esp32-1.
 - Build nie dowodzi działania OTA. Nie obiecuj, że OTA jest niemożliwe do usunięcia.
 - Przed wgraniem ustal płytkę i zgodność hasła z obecnym firmware.
   Wgrywaj tylko w zakresie zlecenia użytkownika; samo przygotowanie repo nie obejmuje flashowania.
@@ -107,7 +109,7 @@ Konkretne prywatne ścieżki podawaj w rozmowie, nie zapisuj ich w plikach publi
 
 ## Weryfikacja i raport
 
-Użyj pio run -e esp32-1 oraz pio run -e esp32-2 (na tym Macu można użyć launchera
+Użyj pio run -e wybranej płytki (na tym Macu można użyć launchera
 ~/.platformio/penv/bin/pio). Nie zmieniaj wersji platformy bez potrzeby: bazowa wersja to 8.0.0.
 Raportuj osobno build, upload i sprawdzenie HTTP. Brak testu urządzenia opisz wprost.
 Nie zmieniaj systemowych uprawnień LAN ani routera w ramach builda.

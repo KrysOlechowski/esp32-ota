@@ -26,7 +26,7 @@ SG90 addition: GPIO16, a 45–135° control slider, center/release buttons, and 
 
 Second RGB LED: sync with the main lamp or choose an independent color and brightness. GPIO17/32/33 drive R/G/B through individual 1 kΩ resistors; the common cathode goes to ground. Hardware verification after upload is pending. See [the second RGB guide](docs/RGB_BARE.md).
 
-LED effects (candle, fire, breathing, rainbow, complementary colors, aurora, ocean, sunset, heartbeat, and ping-pong) and short motor sequences are available in the panel. They require explicit start; motor sequences run once or loop for up to two minutes, with stop controls and drive interlocks. The second RGB card includes matching color tests for both LEDs and software PWM readouts to help diagnose color differences. See [effects](docs/EFFECTS.md) for behavior and pending hardware verification.
+LED effects (candle, fire, breathing, rainbow, complementary colors, aurora, ocean, sunset, heartbeat, and ping-pong) and short motor sequences are available in the panel. Both LEDs start with the sunset effect at 100% brightness on boot, even while waiting for Wi-Fi. Motor sequences require explicit start and run once or loop for up to two minutes, with stop controls and drive interlocks. The second RGB card includes matching color tests for both LEDs and software PWM readouts to help diagnose color differences. See [effects](docs/EFFECTS.md) for behavior and pending hardware verification.
 
 ## 🚀 Quick start
 

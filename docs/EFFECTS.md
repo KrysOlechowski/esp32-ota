@@ -1,8 +1,10 @@
 # Efekty LED i ruchu
 
 Przygotowane programowo na istniejącym ESP32-1: bez zmian przewodów.
-Nowa wersja wymaga uploadu i testu fizycznego. Po restarcie żaden efekt
-nie uruchamia się samoczynnie. OTA i odczyty DHT pozostają obsługiwane w pętli.
+Nowa wersja wymaga uploadu i testu fizycznego. Po restarcie obie diody
+uruchamiają efekt Zachód słońca z jasnością 100%, także podczas oczekiwania
+na Wi-Fi. Efekty ruchu nadal wymagają jawnego startu.
+OTA i odczyty DHT pozostają obsługiwane w pętli.
 
 ## Światło
 
@@ -92,7 +94,8 @@ Nowa wersja wymaga uploadu i testu na urządzeniu.
 ## Rozszerzenie światła i diagnostyka — 2026-11-17
 
 Dodano efekty 6–10 z powyższej listy. Identyfikatory 0–5 zachowane.
-Obliczenia nie blokują obsługi HTTP/OTA; efekty nadal wymagają jawnego startu.
+Obliczenia nie blokują obsługi HTTP/OTA. Od 2026-11-23 Zachód słońca
+uruchamia się domyślnie po restarcie; pozostałe efekty wybiera się w panelu.
 Panel RGB 2 zawiera „Sprawdź kolory obu diod”: pięć statycznych testów
 opisanych w [RGB_BARE.md](RGB_BARE.md). Nie uruchamiają napędów.
 
@@ -105,3 +108,12 @@ przepełnienia i błędów JavaScript. Build esp32-1 i esp32-2: SUCCESS,
 1175778 B / 1310720 B flash (89,7%), RAM 52504 B (16,0%).
 HTTP istniejącego firmware ESP32-1 potwierdzone; nowej wersji nie wgrano.
 Fizyczne barwy i działanie nowych efektów pozostają do sprawdzenia na urządzeniu.
+
+## Domyślny Zachód słońca — 2026-11-23
+
+Po inicjalizacji PWM startuje Zachód słońca na obu RGB z jasnością 100%.
+Animacja działa również podczas oczekiwania na Wi-Fi. Wyłączenie efektu
+przywraca wcześniejsze tryby (po restarcie obie lampki wygaszone).
+Serwo i krokowiec nadal nie uruchamiają się samoczynnie.
+Build ESP32-1: SUCCESS. Upload, HTTP i test po odłączeniu/podłączeniu
+zasilania niewykonane.

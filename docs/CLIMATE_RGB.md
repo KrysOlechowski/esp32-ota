@@ -59,7 +59,8 @@ Nie podciągaj sygnału do 5 V.
   Sucho oznacza pastelowe barwy, wilgotno — mocne, czyste kolory.
 - Zakresy temperatury i wilgotności można zmienić na stronie. To ustawienia
   mapowania koloru, nie kalibracja czujnika. Nie zapisują się po restarcie.
-- Restart: tryb ręczny, lampka wyłączona, jasność 100%, kolor domyślny #0064ff.
+- Restart: efekt Zachód słońca na obu diodach, jasność 100%, także bez Wi-Fi.
+  Po wyłączeniu efektu lampka pozostaje wyłączona; zapisany kolor ręczny to #0064ff.
 - DHT odczytywany co 2,5 s. Odczyt biblioteki zajmuje krótko ok. 20–30 ms,
   pozostały czas pętla obsługuje HTTP i OTA. Nie jest to całkowicie asynchroniczny driver.
 - Błąd pomiaru gasi RGB w auto; ręczne sterowanie nadal działa. Ostatni poprawny

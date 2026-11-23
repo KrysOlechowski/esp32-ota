@@ -38,7 +38,7 @@ są w lokalnej notatce breadboardu; działające DHT/RGB/napędy pozostają bez 
   pierwszej RGB albo błędzie DHT. Nie zmienia ustawień pierwszej lampki.
 - Wyłącz drugą diodę: gasi wyłącznie nową RGB. Zachowuje własny kolor/jasność
   w RAM do ponownego zastosowania przyciskiem.
-- Restart: synchronizacja, podczas startu obie lampki wygaszone. Ustawienia
+- Restart: synchronizacja, obie lampki uruchamiają efekt Zachód słońca. Ustawienia
   nowej diody nie są zapisywane w NVS.
 - Gamma 2,2 i PWM 5 kHz / 8 bitów jak w pierwszej RGB. Kanały LEDC 3/4/5
   dla R/G/B, poza kanałami 0/1/2 pierwszej RGB i kanałem 6 serwa 50 Hz.
@@ -91,8 +91,8 @@ r=100&g=100&b=100. Walidacja trzech całkowitych 0–100 przed zmianą stanu.
 GET stanu dodaje secondGainR/G/B. Podgląd HEX opisuje zadanie przed korekcją.
 
 Domyślna jasność obu diod zmieniona z 60 na 100%, domyślny ręczny kolor RGB 2
-jak RGB 1 (#0064ff). RGB 2 startuje w sync; obie pozostają wygaszone do
-polecenia włączenia pierwszej lub ustawienia niezależnego koloru.
+jak RGB 1 (#0064ff). RGB 2 startuje w sync; od 2026-11-23 obie domyślnie
+uruchamiają efekt Zachód słońca, także podczas oczekiwania na Wi-Fi.
 Układ strony: temperatura/wilgotność, grupa Diody RGB z osobną kartą dla każdej,
 grupa Silniki z osobną kartą dla krokowca i serwa. Ręczne/auto ustawienia
 pierwszej lampki zebrane w jej karcie. Desktop dwie kolumny, mobile jedna.
